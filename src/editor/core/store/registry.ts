@@ -1,5 +1,6 @@
 import type { BlobStore } from './blobStore'
 import type { PageStore } from './types'
+import { referencedBlobIds } from './blobSweep'
 
 /** One page's place in the tree. The body lives in the PageStore under the same id, nowhere else. */
 export interface PageRecord {
@@ -65,7 +66,7 @@ export interface PageRegistry {
   moveToTrash(id: string): Promise<Undoable>
   /** Brings a trashed page back under its old parent, or at the top level if that parent is gone or trashed. */
   restore(id: string): Promise<Undoable>
-  /** Removes a trashed page, its whole subtree and every body, for good. Not undoable. */
+  /** Removes a trashed page, its whole subtree and every body, for good. Not undoable. Files still referred to by a page that stays are kept. */
   deleteForever(id: string): Promise<void>
 }
 
@@ -257,10 +258,22 @@ export function createPageRegistry(options: RegistryOptions): PageRegistry {
       if (record.trashedAt === null)
         throw new RegistryError('not_trashed', 'Only a page in the trash can be deleted for good.')
       const ids = subtreeIds(all, id)
+      // Files that a page staying behind still refers to (a block copied out of the deleted page whose own
+      // copy has not been made yet) are kept. If a remaining body cannot be read nothing is deleted at all.
+      const keep = new Set<string>()
+      if (blobs) {
+        const leaving = new Set(ids)
+        for (const other of all.values()) {
+          if (leaving.has(other.id)) continue
+          const body = await pages.get(other.id)
+          if (body) referencedBlobIds(body.doc, keep)
+        }
+      }
       // Bodies first: if one fails the records stay and the page is still in the trash to try again.
       for (const pageId of ids) {
         await pages.remove(pageId)
-        await blobs?.removePage(pageId)
+        if (!blobs) continue
+        for (const file of await blobs.list(pageId)) if (!keep.has(file.id)) await blobs.remove(file.id)
       }
       await storage.removeMany(ids)
     },

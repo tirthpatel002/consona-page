@@ -77,3 +77,7 @@ tables-of-contents or embedded blocks that hold text in attributes, and any sear
 to through a `blob:<id>` attribute, and `removeBlobs` removes the ids you pass. Nothing is removed automatically:
 the caller must pass the current body and every saved version, or restoring a version would lose its file. The
 demo does not run a sweep yet and no UI offers one; deleting a page for good already removes all its files.
+
+Delete forever and copied blocks: files that a remaining page's body still refers to are kept when a page is deleted
+for good, so a block copied out of it does not lose its file before the copy is adopted. If a remaining body cannot
+be read, nothing is deleted. A kept file stays under the deleted page's id until adoption or a sweep handles it.

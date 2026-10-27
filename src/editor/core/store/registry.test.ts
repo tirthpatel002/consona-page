@@ -140,6 +140,31 @@ describe.each(makers)('%s page registry', (_name, make) => {
     expect(await blobs.usage(keep.id)).toBe(1)
   })
 
+  it('delete forever keeps a file that a remaining page still refers to, and deletes nothing if a remaining body cannot be read', async () => {
+    const { storage, pages } = setup()
+    const blobs = createMemoryBlobStore()
+    const registry = createPageRegistry({ storage, pages, blobs })
+    const a = await registry.create({ title: 'A' })
+    const b = await registry.create({ title: 'B' })
+    const shared = await blobs.put(a.id, new Blob(['x'], { type: 'image/png' }))
+    const own = await blobs.put(a.id, new Blob(['y'], { type: 'image/png' }))
+    // page B holds a block copied from A and has not made its own copy yet
+    await pages.put(b.id, { type: 'doc', content: [{ type: 'media', attrs: { blob: `blob:${shared.id}` } }] })
+    await registry.moveToTrash(a.id)
+    await registry.deleteForever(a.id)
+    expect(await blobs.get(shared.id)).not.toBeNull()
+    expect(await blobs.get(own.id)).toBeNull()
+
+    const c = await registry.create({ title: 'C' })
+    const f = await blobs.put(c.id, new Blob(['z'], { type: 'image/png' }))
+    await registry.moveToTrash(c.id)
+    const unreadable: PageStore = { ...pages, get: () => Promise.reject(new Error('disk')) }
+    const r2 = createPageRegistry({ storage, pages: unreadable, blobs })
+    await expect(r2.deleteForever(c.id)).rejects.toThrow('disk')
+    expect(await blobs.get(f.id)).not.toBeNull()
+    expect(await pages.get(c.id)).toBeNull() // c never had a body; nothing else was touched
+  })
+
   it('a failed body delete keeps the records so the page is still in the trash', async () => {
     const { storage, pages } = setup()
     const failing: PageStore = { ...pages, remove: () => Promise.reject(new Error('disk')) }
