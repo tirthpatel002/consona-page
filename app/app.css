@@ -252,3 +252,8 @@ body {
     padding: 0 8px;
   }
 }
+
+/* The editor leaves room under its last block for clicking; the page-links footer sits closer to the text. */
+.page-shell + .page-previews {
+  margin-top: -5rem;
+}
