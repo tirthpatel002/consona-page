@@ -2,6 +2,8 @@ import { updateColumns } from '@tiptap/extension-table'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import type { NodeView, ViewMutationRecord } from '@tiptap/pm/view'
 
+import { REORDER_LAYER_ATTR } from './reorderDrag'
+
 export const TABLE_TOOLBAR_SLOT = 'data-table-toolbar-slot'
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, parent?: HTMLElement) => {
@@ -42,6 +44,10 @@ export class NativeTableView implements NodeView {
     this.colgroup = el('colgroup', '', this.table)
     updateColumns(node, this.colgroup, this.table, cellMinWidth)
     this.contentDOM = el('tbody', '', this.table)
+    // Non-editable layer for the drag ghost and drop line (ProseMirror ignores it: it is outside contentDOM).
+    const layer = el('div', 'native-table__reorder-layer', scroll)
+    layer.contentEditable = 'false'
+    layer.setAttribute(REORDER_LAYER_ATTR, '')
   }
 
   update(node: PMNode): boolean {
