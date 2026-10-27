@@ -152,3 +152,19 @@ export const loadDemoPage = async (documentId: string): Promise<LoadedPage> => {
   await prepareSidecar()
   return loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSession })
 }
+
+// The demo has one document and no account/workspace layer, so its identity is a UUID created
+// once and persisted locally - stable across reloads and title changes, never reused by a second
+// document (a real host app passes its own document/workspace IDs instead).
+const DOCUMENT_ID_KEY = 'page:document:id'
+export const demoDocumentId = ((): string => {
+  try {
+    const existing = localStorage.getItem(DOCUMENT_ID_KEY)
+    if (existing) return existing
+    const created = crypto.randomUUID()
+    localStorage.setItem(DOCUMENT_ID_KEY, created)
+    return created
+  } catch {
+    return 'demo-document'
+  }
+})()
