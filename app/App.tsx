@@ -38,12 +38,15 @@ type Load =
 
 function Page({ initialContent }: { readonly initialContent: JSONContent }) {
   const page = usePageController({ registry, initialContent, documentId })
+  // Errors from every status component gather in one fixed stack, so two at once never cover each other.
+  const [errorHost, setErrorHost] = useState<HTMLElement | null>(null)
   return (
     <div className="app-frame">
+      <div className="app-error-stack" ref={setErrorHost} />
       <PageBanner documentId={documentId} title={TITLE} />
       <PageToolbar page={page} />
-      {page.editor && <SaveStatus editor={page.editor} />}
-      <SidecarStatus />
+      {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
+      <SidecarStatus errorHost={errorHost} />
       <PageEditor page={page} />
     </div>
   )

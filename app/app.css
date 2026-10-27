@@ -28,16 +28,20 @@ body {
 }
 .save-status.is-error {
   color: var(--page-danger);
-  /* An error must be seen wherever the reader is scrolled, so it is fixed to the bottom of the window. */
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+  background: var(--page-bg);
+  border-top: 1px solid var(--page-border, currentColor);
+}
+.app-error-stack {
+  /* An error must be seen wherever the reader is scrolled, so errors are fixed to the bottom of the window. */
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 40;
-  flex-wrap: wrap;
-  padding: 0.5rem 1rem;
-  background: var(--page-bg);
-  border-top: 1px solid var(--page-border, currentColor);
+  max-height: 40vh;
+  overflow-y: auto;
 }
 .save-status button {
   font: inherit;
@@ -93,4 +97,8 @@ body {
 .recovery button:focus-visible {
   outline: 2px solid var(--page-fg);
   outline-offset: 2px;
+}
+/* While an error is showing, leave room at the end of the page so the last lines are not covered. */
+.app-frame:has(.app-error-stack > *) {
+  padding-bottom: 9rem;
 }
