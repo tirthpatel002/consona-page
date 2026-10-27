@@ -8,7 +8,7 @@
   --nt-radius-atom: var(--page-r-2, 4px);
   --nt-line: var(--page-border-width, 1px) solid var(--page-border);
   --nt-line-soft: var(--page-border-width, 1px) solid color-mix(in oklab, var(--page-border) 60%, transparent);
-  --nt-select: color-mix(in srgb, var(--page-selection) 9%, transparent); /* same ghost tint; borders match fill */
+  --nt-select: color-mix(in oklab, var(--page-fg) 7%, transparent); /* neutral ghost fill; borders match fill */
   /* the editor's selection ring (core editor.css) follows the table's rounded shell */
   --page-selection-radius: var(--nt-radius);
   position: relative;
