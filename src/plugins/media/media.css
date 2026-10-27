@@ -529,3 +529,9 @@
 .tiptap .page-media[data-kind='bookmark'] .page-media__resize {
   display: none;
 }
+
+/* When there is no room above the block (sticky toolbar, top of the window) the bar sits below it. */
+.tiptap .page-media__toolbar-slot[data-placement='below'] {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
