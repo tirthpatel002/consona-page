@@ -1,0 +1,90 @@
+.page-toggle-embed {
+  --toggle-chevron-icon: 20px;
+  --toggle-chevron-box: 2rem;
+}
+
+/* Title row: flex so the chevron stays aligned with the first line at any heading size. */
+.page-toggle-embed__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.page-toggle-embed__title-row--h1 {
+  font-size: 1.875em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.page-toggle-embed__title-row--h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.page-toggle-embed__title-row--h3 {
+  font-size: 1.25em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* Fixed hit target; icon size is constant — do not scale with heading font-size. */
+.page-toggle-embed__chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--toggle-chevron-box);
+  height: var(--toggle-chevron-box);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--page-r-2);
+  background: none;
+  color: var(--page-muted-fg);
+  cursor: pointer;
+}
+
+.page-toggle-embed__chevron:hover:not(:disabled) {
+  color: inherit;
+}
+
+.page-toggle-embed__chevron .page-icon {
+  width: var(--toggle-chevron-icon);
+  height: var(--toggle-chevron-icon);
+  transition: transform 200ms ease;
+}
+
+.page-toggle-embed__chevron.is-open .page-icon {
+  transform: rotate(90deg);
+}
+
+.page-toggle-embed__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.page-toggle-embed__body {
+  display: block;
+  margin-top: 0.25rem;
+  padding-left: calc(var(--toggle-chevron-box) + 0.375rem);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.page-toggle-embed__body--static:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-toggle-embed__chevron .page-icon {
+    transition: none;
+  }
+}

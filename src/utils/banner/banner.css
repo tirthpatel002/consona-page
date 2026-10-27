@@ -1,0 +1,457 @@
+.app-frame {
+  min-height: 100vh;
+}
+
+.app-frame .page-shell {
+  min-height: 0;
+}
+
+/* Banner + toolbar read as one chrome stack: shared inset, one bottom rule on the toolbar. */
+.app-frame .page-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 6px 16px;
+  border-top: 0;
+  border-bottom: 1px solid var(--page-border);
+  background: color-mix(in oklab, var(--page-bg) 92%, transparent);
+}
+
+.app-banner {
+  position: relative;
+  z-index: 21;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 16px;
+  overflow: hidden;
+  user-select: none;
+  background: var(--page-bg);
+}
+
+.app-banner.is-open {
+  height: 370px;
+  padding: 0;
+  background: transparent;
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--page-fg) 8%, transparent);
+}
+
+.app-frame .app-banner.is-open + .page-toolbar {
+  border-top: 0;
+}
+
+.app-banner.is-editing {
+  cursor: grab;
+  touch-action: none;
+}
+
+.app-banner.is-dragging {
+  cursor: grabbing;
+}
+
+.app-banner__media {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition: filter 0.3s ease-out;
+}
+
+.gradient-fill {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gradient-fill > div {
+  position: absolute;
+  inset: -30%;
+}
+
+.gradient-fill__grain {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+
+.app-banner.is-open .app-banner__content {
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.app-banner.is-editing .app-banner__content {
+  align-self: flex-end;
+  margin-top: 0;
+  margin-bottom: 28px;
+}
+
+.app-banner__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  transition: margin-top 0.3s ease;
+}
+
+.app-banner__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.app-banner.is-open .app-banner__identity {
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.app-banner__icon {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.app-banner.is-open .app-banner__icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.app-banner__identity h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--page-fg);
+  transition: color 0.3s ease;
+}
+
+.app-banner.is-open .app-banner__identity h1 {
+  margin-bottom: 16px;
+  font-size: 1.75rem;
+  font-weight: 650;
+}
+
+.app-banner__emoji {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.app-banner__actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.app-banner.is-open .app-banner__actions {
+  gap: 8px;
+  margin: 0 16px 40px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.app-banner__actions button {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--page-r-2, 6px);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--page-muted-fg);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.app-banner__actions button:hover {
+  background: var(--page-hover-fill);
+  color: var(--page-fg);
+}
+
+.app-banner.is-open .app-banner__actions button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
+.app-banner__actions button:active {
+  transform: translateY(1px);
+}
+
+.app-banner__actions button.is-active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.app-banner__edit {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  left: 20px;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  pointer-events: none;
+}
+
+.app-banner__edit > * {
+  pointer-events: auto;
+}
+
+.app-banner__tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.app-banner__reset,
+.app-banner__hint,
+.app-banner__zoom {
+  color: white;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+}
+
+.app-banner__reset {
+  margin: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-banner__hint {
+  max-width: 320px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.app-banner__hint span {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.app-banner__zoom {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 56px;
+  height: 148px;
+  padding: 12px 0;
+  border-radius: 12px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.app-banner__zoom span {
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+.app-banner__zoom-track {
+  position: relative;
+  width: 2px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+.app-banner__zoom-thumb {
+  position: absolute;
+  left: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: white;
+  transition: transform 0.1s ease;
+}
+
+.app-banner-picker {
+  width: 400px;
+}
+
+.page-popover:has(.app-banner-picker) {
+  overflow: hidden;
+  padding: 0;
+}
+
+.app-banner-picker__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--page-border);
+}
+
+.app-banner-picker__tabs button {
+  flex: 1;
+  padding: 10px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--page-muted-fg);
+  font: inherit;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.app-banner-picker__tabs button.is-active {
+  border-bottom-color: var(--page-selection);
+  color: var(--page-selection);
+  font-weight: 600;
+}
+
+.app-banner-picker__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.app-banner-picker__images,
+.app-banner-picker__colors,
+.app-banner-picker__gradients {
+  display: grid;
+  gap: 8px;
+  height: 400px;
+  padding: 5px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.app-banner-picker__images {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.app-banner-picker__colors {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.app-banner-picker__gradients {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.app-banner-picker__image,
+.app-banner-picker__swatch,
+.app-banner-picker__gradient {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.2s ease;
+}
+
+.app-banner-picker__image {
+  height: 80px;
+}
+
+.app-banner-picker__gradient {
+  position: relative;
+  height: 112px;
+  overflow: hidden;
+}
+
+.app-banner-picker__index {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  min-width: 2rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+
+.app-banner-picker__swatch {
+  height: 50px;
+}
+
+.app-banner-picker__image:hover,
+.app-banner-picker__swatch:hover,
+.app-banner-picker__gradient:hover {
+  transform: scale(1.05);
+}
+
+.app-banner-picker__sentinel {
+  grid-column: 1 / -1;
+  min-height: 1px;
+  text-align: center;
+  color: var(--page-muted-fg);
+}
+
+.app-banner-picker__url {
+  display: flex;
+  gap: 8px;
+}
+
+.app-banner-picker__url input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--page-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.app-banner-picker__url button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--page-selection-surface);
+  color: var(--page-selection);
+  font: inherit;
+  cursor: pointer;
+}

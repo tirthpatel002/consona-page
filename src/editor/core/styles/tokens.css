@@ -1,0 +1,58 @@
+/*
+ * Editor design tokens (plain CSS custom properties, light theme). The core chrome, the native table and
+ * block plugins read these; override any of them on :root (or a wrapper) to re-theme the page.
+ */
+:root {
+  --page-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --page-font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --page-radius: 0.625rem;
+  /*
+   * Concentric corner radii: each inner layer subtracts --page-radius-step so hover halos,
+   * selection fills, borders, and inset controls share the same curvature family.
+   */
+  --page-radius-step: 4px;
+  --page-r-0: var(--page-radius);
+  --page-r-1: calc(var(--page-r-0) - var(--page-radius-step));
+  --page-r-2: max(2px, calc(var(--page-r-1) - var(--page-radius-step)));
+  --page-r-atom: max(2px, calc(var(--page-r-2) - 2px));
+
+  --page-surface-pad-x: 0.625rem;
+  --page-surface-pad-y: 0.45rem;
+  --page-ring-offset: var(--page-radius-step);
+  --page-focus-width: 2px;
+  /* Selection: indigo tint on transparent (ghost rects — not mixed into opaque page bg) */
+  --page-selection: oklch(0.5 0.17 264);
+  --page-selection-surface: color-mix(in oklab, var(--page-selection) 9%, transparent);
+  --page-selection-ring: color-mix(in oklab, var(--page-selection) 11%, transparent);
+  --page-selection-fill: var(--page-selection-surface);
+  --page-highlight-fill: var(--page-selection-surface);
+  --page-hover-fill: color-mix(in oklab, currentColor 8%, transparent);
+  --page-hover-ring: color-mix(in oklab, currentColor 12%, transparent);
+  --page-focus-fill: color-mix(in oklab, var(--page-selection) 8%, transparent);
+  --page-focus-ring: color-mix(in oklab, var(--page-selection) 14%, transparent);
+
+  --page-density-factor: 1;
+  --page-border-width: 1px;
+
+  --page-bg: oklch(99.75% 0.0016 66.2);
+  --page-fg: oklch(0.25 0.008 260);
+  --page-border: oklch(0.895 0.006 85);
+  --page-muted: oklch(0.942 0.006 85);
+  --page-muted-fg: oklch(0.5 0.01 260);
+  --page-secondary: oklch(95.9% 0.0152 273.8);
+  --page-overlay: oklch(0.998 0.002 85);
+  --page-overlay-fg: oklch(0.25 0.008 260);
+
+  --page-info: var(--page-selection);
+  --page-info-subtle: color-mix(in oklab, var(--page-selection) 6%, var(--page-bg));
+  --page-info-subtle-fg: oklch(0.38 0.12 264);
+  --page-success: oklch(0.56 0.12 145);
+  --page-success-subtle: oklch(0.95 0.025 145);
+  --page-success-subtle-fg: oklch(0.38 0.09 145);
+  --page-warning: oklch(0.72 0.11 75);
+  --page-warning-subtle: oklch(0.96 0.025 75);
+  --page-warning-subtle-fg: oklch(0.44 0.09 75);
+  --page-danger: oklch(0.56 0.14 25);
+  --page-danger-subtle: oklch(0.96 0.025 25);
+  --page-danger-subtle-fg: oklch(0.44 0.11 25);
+}

@@ -1,0 +1,419 @@
+/* F1 comments: anchor highlight + panel + composer. */
+
+.page-comment {
+  background: var(--page-selection-surface);
+  border-bottom: 2px solid color-mix(in oklab, var(--page-selection) 40%, transparent);
+  cursor: pointer;
+}
+
+.page-popover:has(.page-comment-composer) {
+  padding: 0;
+  overflow: hidden;
+  width: 280px;
+  border-radius: var(--page-r-0);
+}
+
+/* Shell = r-0; inset = one radius step; inner button = r-1 (concentric ladder). */
+.page-comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-radius-step);
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+}
+
+.page-comment-composer textarea,
+.page-comments__editor textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  max-height: 10rem;
+  margin: 0;
+  border: 0;
+  border-radius: var(--page-r-2);
+  background: transparent;
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.page-comment-composer textarea {
+  padding: var(--page-surface-pad-y) var(--page-surface-pad-x);
+  min-height: 3.25rem;
+}
+
+.page-comments__editor textarea {
+  padding: 6px 8px;
+}
+
+.page-comment-composer textarea::placeholder {
+  color: var(--page-muted-fg);
+}
+
+.page-comment-composer textarea:focus,
+.page-comment-composer textarea:focus-visible,
+.page-comments__editor textarea:focus,
+.page-comments__editor textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.page-comment-composer__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-radius-step);
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.page-comment-composer__submit {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--page-r-1);
+  background: var(--page-selection);
+  color: var(--page-bg);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.page-comment-composer__submit:disabled {
+  background: var(--page-muted);
+  color: var(--page-muted-fg);
+  cursor: default;
+  opacity: 0.85;
+}
+
+.page-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px 18px;
+  overflow-y: auto;
+  height: 100%;
+}
+.page-comments__tabs {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--page-muted);
+  border-radius: var(--page-r-1);
+  padding: 2px;
+  align-self: flex-start;
+}
+.page-comments__tabs button {
+  border: none;
+  background: none;
+  padding: 4px 10px;
+  border-radius: var(--page-r-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.page-comments__tabs button.is-active {
+  background: var(--page-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+.page-comments__empty {
+  color: var(--page-muted-fg);
+  font-size: 13px;
+}
+/* Thread card: outer r-0, inset --page-radius-step, inner surfaces r-1 (matches comment popover composer). */
+.page-comments__thread {
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: var(--page-r-0);
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--page-bg);
+  overflow: visible;
+  box-sizing: border-box;
+}
+.page-comments__thread.is-active {
+  border-color: color-mix(in oklab, var(--page-selection) 28%, var(--page-border));
+  background: color-mix(in oklab, var(--page-selection) 4%, var(--page-bg));
+}
+.page-comments__thread.is-resolved {
+  opacity: 0.75;
+}
+.page-comments__anchor {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: var(--page-border-width) solid color-mix(in oklab, var(--page-selection) 20%, var(--page-border));
+  border-radius: var(--page-r-1);
+  background: var(--page-selection-surface);
+  box-sizing: border-box;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.page-comments__anchor:not(:disabled):hover {
+  border-color: color-mix(in oklab, var(--page-selection) 40%, var(--page-border));
+  background: color-mix(in oklab, var(--page-selection) 12%, transparent);
+}
+
+.page-comments__anchor:disabled {
+  cursor: default;
+  opacity: 0.85;
+  background: var(--page-muted);
+  border-color: var(--page-border);
+}
+
+.page-comments__anchor-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--page-selection) 75%, var(--page-muted-fg));
+}
+
+.page-comments__anchor-quote {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--page-fg);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.page-comment.page-comment--flash,
+.ProseMirror [data-comment-thread].page-comment--flash {
+  animation: page-comment-flash 1.2s ease;
+}
+
+@keyframes page-comment-flash {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  40% {
+    box-shadow: 0 0 0 3px var(--page-selection-ring);
+  }
+}
+.page-comments__messages {
+  display: flex;
+  flex-direction: column;
+  padding: 0 6px;
+}
+
+.page-comments__message-group + .page-comments__message-group {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: var(--page-border-width) solid var(--page-border);
+}
+
+.page-comments__message-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.page-comments__replies-toggle {
+  display: block;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--page-selection) 70%, var(--page-muted-fg));
+  cursor: pointer;
+  text-align: left;
+}
+
+.page-comments__replies-toggle:hover {
+  color: var(--page-selection);
+  text-decoration: underline;
+}
+
+.page-comments__replies {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0 0 10px;
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in oklab, var(--page-selection) 16%, var(--page-border));
+}
+
+.page-comments__replies-toggle.is-open {
+  margin-top: 0;
+}
+
+.page-comments__replies .page-comments__message + .page-comments__message {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: var(--page-border-width) solid color-mix(in oklab, var(--page-border) 85%, transparent);
+}
+
+.page-comments__message {
+  margin: 0;
+}
+
+.page-comments__byline {
+  margin: 0 0 5px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--page-muted-fg);
+}
+
+.page-comments__author {
+  font-weight: 600;
+  color: var(--page-fg);
+}
+
+.page-comments__dot {
+  margin: 0 0.3em;
+  opacity: 0.55;
+}
+
+.page-comments__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--page-fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.page-comments__edited {
+  font-style: italic;
+}
+
+.page-comments__message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.page-comments__message .page-comments__reply.page-comment-composer {
+  margin-top: 8px;
+}
+
+.page-comments__thread-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.page-comments__thread-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  padding: 10px 6px 0;
+  border-top: 1px solid var(--page-border);
+  box-sizing: border-box;
+}
+.page-comments__message-actions button,
+.page-comments__thread-actions button,
+.page-comments__editor button {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--page-muted-fg);
+  cursor: pointer;
+}
+
+.page-comments__message-actions button:hover,
+.page-comments__thread-actions button:hover,
+.page-comments__editor button:not(.page-comment-composer__submit):hover {
+  color: var(--page-fg);
+}
+
+.page-comments__message-actions button.is-danger:hover {
+  color: var(--page-danger);
+}
+.page-comments__thread-actions button.is-danger:hover {
+  color: var(--page-danger);
+}
+.page-comments__thread-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.page-comments__reply {
+  border-radius: var(--page-r-1);
+  background: transparent;
+  overflow: visible;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.page-comments__reply.page-comment-composer {
+  padding: var(--page-radius-step);
+  min-height: 0;
+}
+
+.page-comments__reply-cancel {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--page-r-1);
+  background: transparent;
+  color: var(--page-muted-fg);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.page-comments__reply-cancel:hover {
+  color: var(--page-fg);
+  background: var(--page-muted);
+}
+
+.page-comments__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-radius-step);
+}
+
+.page-comments__warning {
+  margin: 0;
+  padding: 6px 8px;
+  background: var(--page-warning-subtle);
+  color: var(--page-warning-subtle-fg);
+  font-size: 12px;
+  border-radius: var(--page-r-2);
+}
+
+/* Block-level anchors: the whole block carries the comment tint. */
+.ProseMirror [data-comment-thread]:not(.page-comment):not(.page-comment--dangling) {
+  background: var(--page-selection-surface);
+  border-radius: var(--page-r-2);
+}
+
+/* Dangling anchor: the thread was deleted - muted and inert, never resurrected. */
+.page-comment--dangling,
+.ProseMirror .page-comment--dangling {
+  background: transparent;
+  border-bottom: 1px dashed var(--page-muted-fg);
+  cursor: default;
+}

@@ -1,0 +1,126 @@
+.page-code-block {
+  position: relative;
+  box-sizing: border-box;
+  max-height: 500px;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--page-muted);
+  color: var(--page-fg);
+}
+
+.page-code-block__toolbar {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: 0.625rem;
+  background: var(--page-overlay, var(--page-bg));
+}
+
+.page-code-block__lang,
+.page-code-block__toolbar button {
+  box-sizing: border-box;
+  height: 1.75rem;
+  margin: 0;
+  border-radius: 0.45rem;
+  color: var(--page-fg);
+}
+
+.page-code-block__lang {
+  display: grid;
+  place-items: center;
+  padding: 0 0.45rem;
+  font-family: var(--page-font-sans);
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--page-muted-fg);
+}
+
+.page-code-block__toolbar button {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.page-code-block__toolbar button:hover {
+  background: var(--page-hover-fill);
+  color: var(--page-fg);
+}
+
+.page-code-block__toolbar button .page-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.tiptap .page-code-block pre {
+  box-sizing: border-box;
+  max-height: 500px;
+  margin: 0;
+  padding: 2.5rem 1rem 1.25rem;
+  overflow: auto;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--page-font-mono);
+  font-size: 0.875em;
+  line-height: 1.55;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.tiptap .page-code-block pre code {
+  display: block;
+  min-width: min-content;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  white-space: pre;
+}
+
+.tiptap .page-code-block pre .hljs-comment,
+.tiptap .page-code-block pre .hljs-quote {
+  color: var(--page-muted-fg);
+  font-style: italic;
+}
+
+.tiptap .page-code-block pre .hljs-keyword,
+.tiptap .page-code-block pre .hljs-selector-tag,
+.tiptap .page-code-block pre .hljs-literal {
+  color: var(--page-info);
+}
+
+.tiptap .page-code-block pre .hljs-string,
+.tiptap .page-code-block pre .hljs-attr,
+.tiptap .page-code-block pre .hljs-regexp {
+  color: var(--page-success);
+}
+
+.tiptap .page-code-block pre .hljs-number,
+.tiptap .page-code-block pre .hljs-built_in,
+.tiptap .page-code-block pre .hljs-type {
+  color: var(--page-warning);
+}
+
+.tiptap .page-code-block pre .hljs-title,
+.tiptap .page-code-block pre .hljs-function {
+  color: var(--page-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-code-block__toolbar button {
+    transition: none;
+  }
+}

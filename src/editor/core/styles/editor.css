@@ -1,0 +1,1180 @@
+@import './tokens.css';
+@import './radii.css';
+@import './blockFeedback.css';
+@import './lockMode.css';
+
+/* Editor core chrome (plain CSS, theme-agnostic: uses currentColor / Canvas). Tokens: tokens.css. */
+.page-shell {
+  min-height: 100vh;
+}
+
+/* Toolbar */
+.page-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--page-border);
+  background: color-mix(in oklab, var(--page-bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+.page-toolbar__title {
+  margin-right: 4px;
+  font-size: 13px;
+}
+.page-toolbar__group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.page-toolbar__group + .page-toolbar__group {
+  border-left: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+  margin-left: 6px;
+  padding-left: 8px;
+}
+.page-toolbar__spacer {
+  flex: 1;
+}
+/* One button geometry for every toolbar control (B2): 28px tall, icon-centred, borderless until hovered. */
+.page-toolbar button,
+.page-toolbar select {
+  font: inherit;
+  font-size: 13px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: var(--page-r-2);
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  background: transparent;
+}
+.page-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  box-sizing: border-box;
+}
+.page-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+.page-toolbar button .page-icon {
+  transform: none;
+}
+.page-toolbar button:hover:not(:disabled) {
+  background: var(--page-hover-fill);
+  box-shadow: none;
+}
+.page-toolbar button:hover:not(:disabled) .page-icon {
+  width: 16px;
+  height: 16px;
+  transform: none;
+}
+.page-toolbar button.is-active {
+  background: var(--page-selection-surface);
+  box-shadow: none;
+  color: var(--page-selection);
+}
+.page-toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.page-toolbar__panel-toggle {
+  position: relative;
+}
+
+.page-toolbar__panel-toggle-inner {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-toolbar__badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--page-selection);
+  color: var(--page-bg);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  pointer-events: none;
+}
+.page-toolbar select {
+  border: 1px solid color-mix(in oklab, currentColor 18%, transparent);
+}
+.page-toolbar select:disabled {
+  opacity: 0.35;
+}
+
+/* Layout */
+.page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.page-layout.has-panel {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+.page-document {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 56px 120px;
+  box-sizing: border-box;
+}
+.page-panel {
+  position: sticky;
+  top: 49px;
+  height: calc(100vh - 49px);
+  overflow: auto;
+  border-left: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+}
+
+/* Document typography. Zero-specificity reset first, so the rules below (and block styles) win. */
+.ProseMirror :where(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, figure, hr) {
+  margin: 0;
+}
+.ProseMirror :where(h1, h2, h3, h4, h5, h6) {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.ProseMirror :where(ul, ol) {
+  padding: 0;
+}
+.ProseMirror {
+  outline: none;
+  line-height: 1.65;
+}
+.ProseMirror > * + * {
+  margin-top: 0.6em;
+}
+.ProseMirror h1 {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.4em;
+}
+.ProseMirror h2 {
+  font-size: 1.4rem;
+  font-weight: 650;
+  margin-top: 1.4em;
+}
+.ProseMirror h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 1.2em;
+}
+.ProseMirror ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.ProseMirror ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.ProseMirror blockquote {
+  border-left: 3px solid color-mix(in oklab, currentColor 25%, transparent);
+  padding-left: 1em;
+  opacity: 0.85;
+}
+.ProseMirror code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: color-mix(in oklab, currentColor 8%, transparent);
+}
+.ProseMirror p.is-empty::before,
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.ProseMirror ::selection {
+  background: var(--page-selection-surface);
+}
+
+/*
+ * Permanent horizontal inset on blocks that can show a selection fill.
+ * Padding is always present (never added on :selected) so layout does not jump.
+ */
+.ProseMirror > :is(p, h1, h2, h3, h4, h5, h6, pre, .page-code-block, hr),
+.page-column > :is(p, h1, h2, h3, h4, h5, h6, pre, .page-code-block, ul, ol, blockquote) {
+  box-sizing: border-box;
+  padding-inline: var(--page-surface-pad-x);
+  border-radius: var(--page-r-1);
+}
+.ProseMirror > ul,
+.ProseMirror > ol,
+.page-column > :is(ul, ol) {
+  padding-right: var(--page-surface-pad-x);
+  padding-left: calc(var(--page-surface-pad-x) + 1.4em);
+}
+.ProseMirror > blockquote,
+.page-column > blockquote {
+  padding-right: var(--page-surface-pad-x);
+  padding-left: calc(var(--page-surface-pad-x) + 1em);
+}
+
+/* Tables / shell nodes: feedback in blockFeedback.css */
+.ProseMirror > .native-table.page-block-selected,
+.ProseMirror > .native-table.ProseMirror-selectednode {
+  padding-inline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Embedded blocks */
+.page-block {
+  position: relative;
+  margin: 1em 0;
+  border-radius: var(--page-r-0);
+  --page-selection-radius: var(--page-r-0);
+}
+/* Embed chrome lives on .page-block__body (radii.css); avoid a second outer halo here. */
+.page-block.is-selected,
+.page-block.page-block-selected,
+.page-block.ProseMirror-selectednode {
+  background: transparent;
+  box-shadow: none;
+}
+.ProseMirror-selectednode > .page-block {
+  background: transparent;
+  box-shadow: none;
+}
+/* Block gutter: one "+" and one grip for every top-level block (gutter/BlockGutter.tsx).
+   Positioned inside .page-document; its vertical centre is the hovered block's first line. */
+.page-document {
+  position: relative;
+}
+.page-gutter {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  transform: translate(calc(-100% - 6px), -50%);
+}
+.page-gutter button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--page-r-2);
+  background: none;
+  color: color-mix(in oklab, currentColor 45%, transparent);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+.page-gutter button:hover,
+.page-gutter button[aria-expanded='true'] {
+  color: color-mix(in oklab, currentColor 80%, transparent);
+  background: var(--page-hover-fill);
+  box-shadow: 0 0 0 1px var(--page-hover-ring);
+}
+.page-gutter .page-gutter__handle {
+  cursor: grab;
+}
+.page-gutter svg {
+  display: block;
+}
+/*
+ * THE selection highlight for a node-selected block (e.g. after a handle click or drop): one soft fill on the
+ * block's own node DOM — text blocks, embeds (their node-view wrapper) and the native table alike. Nothing
+ * else draws a selection outline. Blocks only tune the corner radius via --page-selection-radius on their
+ * node DOM (the fill follows border-radius).
+ */
+.ProseMirror .ProseMirror-selectednode {
+  border-radius: var(--page-selection-radius, var(--page-r-1));
+}
+.ProseMirror .ProseMirror-selectednode:has(> .page-block) {
+  background: transparent;
+  box-shadow: none;
+}
+/* Embeds + shell natives delegate feedback to blockFeedback.css. */
+.ProseMirror .ProseMirror-selectednode:is(.page-block, [data-block-feedback='shell']) {
+  background: transparent;
+  box-shadow: none;
+}
+.ProseMirror .ProseMirror-selectednode:not(:has(> .page-block)):not(.page-block):not([data-block-feedback='shell']) {
+  border-radius: var(--page-selection-radius, var(--page-r-1));
+  background: var(--page-highlight-fill);
+  background-clip: padding-box;
+}
+/* While a node is selected ProseMirror hides the DOM selection with a transparent ::selection background;
+   keep the text colour too, or Chrome paints the selected embed's text in the highlight colour (invisible). */
+.ProseMirror-hideselection *::selection {
+  color: currentColor;
+}
+.ProseMirror .ProseMirror-selectednode:has(> .page-block) {
+  --page-selection-radius: var(--page-r-0);
+}
+
+.page-handle-menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  background: Canvas;
+  color: CanvasText;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  border: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+}
+.page-handle-menu__section + .page-handle-menu__section {
+  border-top: 1px solid color-mix(in oklab, currentColor 10%, transparent);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.page-handle-menu__label {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+.page-handle-menu button,
+.page-slash-menu button {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.page-handle-menu button:hover,
+.page-handle-menu button:focus-visible,
+.page-handle-menu button:focus,
+.page-handle-menu button.is-submenu-open,
+.page-slash-menu button.is-active {
+  outline: none;
+  background: var(--page-selection-fill);
+}
+.page-handle-menu button.has-submenu {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.page-handle-menu button.has-submenu .page-icon {
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+.page-menu-flyout {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--page-overlay);
+  color: var(--page-overlay-fg);
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: var(--page-radius);
+  box-shadow: 0 8px 28px oklch(0.25 0.01 260 / 0.2);
+  font-family: var(--page-font-sans);
+  font-size: 13px;
+}
+.page-menu-flyout button {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.page-menu-flyout button:hover,
+.page-menu-flyout button:focus-visible {
+  outline: none;
+  background: var(--page-selection-fill);
+}
+.page-menu-flyout button.is-danger {
+  color: var(--page-danger);
+}
+.page-handle-menu button.is-danger {
+  color: #dc2626;
+}
+
+.page-block-problem {
+  padding: 12px 14px;
+  border: 1px dashed #ef4444;
+  border-radius: var(--page-r-1);
+  color: #b91c1c;
+  font-size: 13px;
+}
+.page-block-problem ul {
+  margin: 6px 0 0;
+  padding-left: 1.2em;
+  list-style: disc;
+}
+
+/* Slash menu */
+.page-slash-menu {
+  position: fixed;
+  z-index: 50;
+  width: 260px;
+  max-height: 340px;
+  overflow: auto;
+  padding: 4px;
+  background: Canvas;
+  color: CanvasText;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  border: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+}
+.page-slash-menu__group {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+.page-slash-menu__empty {
+  padding: 8px 10px;
+  font-size: 13px;
+  opacity: 0.6;
+}
+.page-slash-menu small {
+  opacity: 0.6;
+  font-size: 11px;
+}
+
+/* Shared UI primitives: bubble toolbar, popover, menu, colour picker */
+.page-bubble {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--page-overlay);
+  color: var(--page-overlay-fg);
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: var(--page-radius);
+  box-shadow: 0 4px 16px oklch(0.25 0.01 260 / 0.14);
+  font-family: var(--page-font-sans);
+}
+.page-bubble__group {
+  display: flex;
+  gap: 1px;
+}
+.page-bubble__group + .page-bubble__group {
+  border-left: var(--page-border-width) solid var(--page-border);
+  margin-left: 2px;
+  padding-left: 3px;
+}
+.page-bubble button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.page-bubble button:hover {
+  background: var(--page-muted);
+}
+.page-bubble button.is-active {
+  background: var(--page-focus-fill);
+  box-shadow: inset 0 0 0 1px var(--page-focus-ring);
+  color: var(--page-selection);
+}
+.page-popover {
+  position: fixed;
+  z-index: 40;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--page-overlay);
+  color: var(--page-overlay-fg);
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: var(--page-radius);
+  box-shadow: 0 6px 24px oklch(0.25 0.01 260 / 0.18);
+  font-family: var(--page-font-sans);
+  font-size: 0.875rem;
+}
+
+/* Emoji picker: fixed shell; only the grid scrolls (not the popover chrome). */
+.page-popover:has(.page-emoji-picker) {
+  overflow: hidden;
+}
+.page-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+}
+.page-menu__item {
+  text-align: left;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.page-menu__item.is-highlighted,
+.page-menu__item:hover {
+  background: var(--page-selection-fill);
+}
+.page-colors-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 188px;
+}
+.page-colors-panel__title {
+  font-size: 0.75rem;
+  color: var(--page-muted-fg);
+}
+.page-colors {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.page-colors__swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: var(--page-border-width) solid var(--page-border);
+  cursor: pointer;
+}
+.page-colors__swatch.is-none {
+  background: linear-gradient(135deg, transparent 45%, var(--page-danger) 45% 55%, transparent 55%), var(--page-bg);
+}
+.page-colors__swatch.is-active {
+  outline: 2px solid var(--page-info);
+  outline-offset: 1px;
+}
+.page-link-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.page-link-form input {
+  width: 220px;
+  padding: 5px 8px;
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: 6px;
+  font: inherit;
+}
+.page-link-form button {
+  padding: 5px 9px;
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: 6px;
+  background: var(--page-bg);
+  font: inherit;
+  cursor: pointer;
+}
+.ProseMirror a {
+  color: var(--page-info);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Lists */
+.ProseMirror ul[data-marker='circle'] {
+  list-style-type: circle;
+}
+.ProseMirror ul[data-marker='square'] {
+  list-style-type: square;
+}
+.ProseMirror ol[data-marker='lower-alpha'] {
+  list-style-type: lower-alpha;
+}
+.ProseMirror ol[data-marker='lower-roman'] {
+  list-style-type: lower-roman;
+}
+.ProseMirror ul.page-checklist {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+.ProseMirror ul.page-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.ProseMirror ul.page-checklist li > label {
+  /* Centre the checkbox on the first text line: the label matches the editor's line-height. */
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  height: 1.65em;
+  margin: 0;
+  user-select: none;
+}
+.ProseMirror ul.page-checklist li > label > input {
+  margin: 0;
+}
+.ProseMirror ul.page-checklist li > div {
+  flex: 1;
+  min-width: 0;
+}
+.ProseMirror ul.page-checklist li[data-checked='true'] > div > p {
+  color: var(--page-muted-fg);
+  text-decoration: line-through;
+}
+
+/* Pointer drag of a block (gutter/pointerDrag.ts): drop line + dimmed source. */
+.page-drop-indicator {
+  position: absolute;
+  z-index: 20;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: var(--page-selection);
+  pointer-events: none;
+}
+.ProseMirror .page-dragging {
+  opacity: 0.4;
+}
+/* The formatting toolbar would float over the drop line while a block is dragged. */
+body.page-is-dragging .page-bubble {
+  display: none;
+}
+body.page-is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+body.page-is-dragging .page-gutter .page-gutter__handle {
+  cursor: grabbing;
+}
+
+/* Touch: the grip must receive pointermove instead of scrolling the page, and be easy to hit. */
+.page-gutter__handle,
+.page-gutter__plus {
+  touch-action: none;
+}
+@media (pointer: coarse) {
+  .page-gutter__handle,
+  .page-gutter__plus {
+    min-width: 2rem;
+    min-height: 2rem;
+  }
+}
+
+/* While a marquee drag is active the page must not grow a native text selection (A4). */
+body.page-is-marqueeing {
+  user-select: none;
+  cursor: crosshair;
+}
+
+/* Page lock (B4): editing affordances disappear while locked; reading, selection, links and export stay. */
+.page-shell--locked .page-gutter,
+.page-shell--locked .column-resize-handle {
+  display: none;
+}
+.page-shell--locked .ProseMirror {
+  cursor: default;
+}
+
+/* D3: hovering a link shows its URL in a tooltip placed by the shared placement utility (A3). */
+.page-link-tooltip {
+  position: fixed;
+  z-index: 60;
+  max-width: 320px;
+  padding: 3px 8px;
+  overflow: hidden;
+  color: #fff;
+  background: rgba(15, 15, 15, 0.9);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: page-link-tooltip-in 140ms ease backwards;
+}
+
+@keyframes page-link-tooltip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion: all C6/D3 motion becomes instant (chevron, tabs, toggle content, tooltip, hovers). */
+@media (prefers-reduced-motion: reduce) {
+  .page-link-tooltip,
+  .page-tabs__body,
+  .page-tabs__header,
+  .page-tabs__header::after,
+  .page-tabs__remove,
+  .page-tabs__add,
+  .page-breadcrumb__link {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Emoji plugin (D1) */
+.page-emoji-menu__char {
+  font-size: 16px;
+  line-height: 1;
+  margin-right: 8px;
+}
+
+.page-emoji-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 300px;
+  height: 340px;
+  max-height: min(340px, calc(100vh - 96px));
+  overflow: hidden;
+}
+
+.page-emoji-picker__search {
+  padding: 6px 8px;
+  border: 1px solid var(--page-border, #e2e2e2);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.page-emoji-picker__search:focus {
+  border-color: var(--page-selection);
+}
+
+.page-emoji-picker__tabs {
+  display: flex;
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.page-emoji-picker__tabs button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--page-r-2);
+  background: transparent;
+  color: var(--page-muted-fg);
+  cursor: pointer;
+}
+
+.page-emoji-picker__tabs button:hover {
+  background: var(--page-hover-fill);
+  color: var(--page-fg);
+}
+
+.page-emoji-picker__tabs button.is-active {
+  background: var(--page-selection-surface);
+  color: var(--page-selection);
+}
+
+.page-emoji-picker__search,
+.page-emoji-picker__tabs,
+.page-emoji-picker__tone {
+  flex: none;
+}
+
+.page-emoji-picker__body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--page-muted-fg) 28%, transparent) transparent;
+}
+
+.page-emoji-picker__body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.page-emoji-picker__body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--page-muted-fg) 28%, transparent);
+}
+
+.page-emoji-picker__empty {
+  padding: 12px;
+  color: var(--page-text-secondary, #73726e);
+  font-size: 13px;
+  text-align: center;
+}
+
+.page-emoji-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 2px;
+}
+
+.page-emoji-picker__grid button {
+  font-size: 18px;
+  line-height: 1;
+  padding: 5px 0;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.page-emoji-picker__grid button:hover,
+.page-emoji-picker__grid button:focus-visible,
+.page-emoji-picker__grid button.is-active {
+  background: var(--page-hover, #f1f1ef);
+}
+
+.page-emoji-menu__name {
+  text-transform: capitalize;
+}
+
+.page-emoji-picker__tone {
+  display: flex;
+  gap: 2px;
+  border-top: 1px solid var(--page-border, #e2e2e2);
+  padding-top: 6px;
+}
+
+.page-emoji-picker__tone button {
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.page-emoji-picker__tone button:hover,
+.page-emoji-picker__tone button.is-active {
+  background: var(--page-hover, #f1f1ef);
+}
+
+/* Version history: the document on the left, versions by date on the right. */
+.page-versions {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-versions__header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--page-border);
+  background: var(--page-bg);
+}
+
+.page-versions__header-end {
+  justify-self: end;
+}
+
+.page-versions__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.page-versions__back:hover {
+  background: var(--page-hover-fill);
+}
+
+.page-versions__restore {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--page-selection);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.page-versions__restore:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.page-versions__warning {
+  margin: 0;
+  padding: 8px 16px;
+  background: var(--page-warning-subtle);
+  color: var(--page-warning-subtle-fg);
+  font-size: 13px;
+  border-bottom: 1px solid var(--page-border);
+}
+
+.page-versions__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.page-versions__preview {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--page-bg);
+}
+
+.page-versions .page-shell {
+  min-height: 100%;
+}
+
+.page-versions__when {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  color: var(--page-muted-fg);
+  font-size: 13px;
+  text-align: center;
+}
+
+.page-versions__when-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--page-fg);
+  font-weight: 600;
+}
+
+.page-versions__when-desc {
+  max-width: 36rem;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.page-versions__badge {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--page-selection-surface);
+  color: var(--page-selection);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.page-versions__list {
+  width: 300px;
+  flex: none;
+  border-left: 1px solid var(--page-border);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.page-versions__button {
+  padding: 5px 10px;
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: 6px;
+  background: var(--page-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.page-versions__button:hover:not(:disabled) {
+  background: var(--page-hover-fill);
+}
+
+.page-versions__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, black 35%, transparent);
+}
+
+.page-versions__modal form {
+  width: min(420px, calc(100% - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--page-border);
+  border-radius: var(--page-radius);
+  background: var(--page-bg);
+  color: var(--page-fg);
+}
+
+.page-versions__modal h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.page-versions__modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.page-versions__modal input,
+.page-versions__modal textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--page-border);
+  border-radius: 6px;
+  background: var(--page-bg);
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+}
+
+.page-versions__modal textarea {
+  resize: vertical;
+}
+
+.page-versions__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.page-versions__day {
+  margin: 14px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--page-muted-fg);
+}
+
+.page-versions__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 4px 6px 8px;
+  border-radius: 8px;
+  color: inherit;
+}
+
+.page-versions__item:hover {
+  background: var(--page-hover-fill);
+}
+
+.page-versions__item.is-active {
+  background: var(--page-selection-surface);
+}
+
+.page-versions__item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.page-versions__item-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.page-versions__item-desc {
+  color: var(--page-muted-fg);
+  font-size: 12px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.page-versions__item-meta,
+.page-versions__empty {
+  color: var(--page-muted-fg);
+  font-size: 12px;
+}
+
+.page-versions__edit {
+  flex: none;
+  display: inline-flex;
+  margin-top: 2px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--page-muted-fg);
+  cursor: pointer;
+}
+
+.page-versions__edit:hover {
+  background: var(--page-hover-fill);
+  color: var(--page-fg);
+}
+
+.page-versions__empty {
+  margin: 8px 10px;
+  font-size: 13px;
+}

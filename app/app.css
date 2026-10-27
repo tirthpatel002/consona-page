@@ -1,0 +1,18 @@
+/* App-level base styles. Tokens (--page-*) are defined by the editor core (editor/core/styles/tokens.css). */
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+html {
+  font-family: var(--page-font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  margin: 0;
+}

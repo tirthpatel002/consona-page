@@ -1,0 +1,87 @@
+/* Example embed block styles: plain CSS on the editor tokens (core styles/tokens.css). */
+.page-callout {
+  --callout-accent: var(--page-info);
+  --callout-bg: var(--page-info-subtle);
+  --callout-fg: var(--page-info-subtle-fg);
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: calc(0.75rem * var(--page-density-factor)) calc(1rem * var(--page-density-factor));
+  border: var(--page-border-width) solid color-mix(in oklab, var(--callout-accent) 28%, transparent);
+  border-radius: var(--page-r-0, var(--page-radius));
+  background: var(--callout-bg);
+  color: var(--callout-fg);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.page-callout--success {
+  --callout-accent: var(--page-success);
+  --callout-bg: var(--page-success-subtle);
+  --callout-fg: var(--page-success-subtle-fg);
+}
+.page-callout--warning {
+  --callout-accent: var(--page-warning);
+  --callout-bg: var(--page-warning-subtle);
+  --callout-fg: var(--page-warning-subtle-fg);
+}
+.page-callout--danger {
+  --callout-accent: var(--page-danger);
+  --callout-bg: var(--page-danger-subtle);
+  --callout-fg: var(--page-danger-subtle-fg);
+}
+.page-callout--neutral {
+  --callout-accent: var(--page-muted-fg);
+  --callout-bg: var(--page-muted);
+  --callout-fg: var(--page-fg);
+}
+.page-callout__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.0625rem;
+  border-radius: 999px;
+  background: var(--callout-accent);
+  color: var(--page-bg);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.page-callout__content {
+  min-width: 0;
+}
+.page-callout__title {
+  font-weight: 600;
+}
+.page-callout__body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* In-place editing: the text looks like the static callout; only focus and empty fields show an affordance. */
+.page-callout__field {
+  white-space: pre-wrap;
+  cursor: text;
+  outline: none;
+  box-shadow: none;
+}
+
+.page-callout__field:focus,
+.page-callout__field:focus-visible {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+.page-callout__field:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.55;
+}
+.page-callout__title:has(.page-callout__field:empty:not(:focus)) {
+  display: none;
+}
+.page-callout:hover .page-callout__title:has(.page-callout__field:empty:not(:focus)),
+.page-callout:focus-within .page-callout__title:has(.page-callout__field:empty) {
+  display: block;
+}

@@ -1,0 +1,22 @@
+.tiptap .page-card {
+  margin: 0.5rem 0;
+  padding: calc(0.5rem * var(--page-density-factor)) calc(1rem * var(--page-density-factor));
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: var(--page-r-0, var(--page-radius));
+  background: var(--page-bg);
+  position: relative;
+}
+.tiptap .page-card[data-tone='muted'] {
+  background: var(--page-muted);
+}
+.tiptap .page-card[data-tone='accent'] {
+  border-color: color-mix(in oklab, var(--page-info) 28%, transparent);
+  background: var(--page-info-subtle);
+  color: var(--page-info-subtle-fg);
+}
+.tiptap .page-card > :first-child {
+  margin-top: 0;
+}
+.tiptap .page-card > :last-child {
+  margin-bottom: 0;
+}

@@ -1,0 +1,40 @@
+.page-equation {
+  padding: 0.15em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.page-equation--editing {
+  text-align: left;
+  padding: 0;
+}
+
+.page-equation__field {
+  font-family: var(--page-font-mono, ui-monospace, monospace);
+  font-size: 0.875em;
+  white-space: pre-wrap;
+}
+
+.page-equation--interactive {
+  width: 100%;
+}
+
+.page-equation--empty {
+  color: var(--page-muted-fg);
+}
+
+.page-equation--error {
+  text-align: left;
+}
+
+.page-equation--error code {
+  display: block;
+  padding: 0.4em 0.6em;
+  background: var(--page-danger-subtle);
+  border-radius: var(--page-r-2);
+  white-space: pre-wrap;
+}
+
+.page-equation--error small {
+  color: var(--page-danger);
+}

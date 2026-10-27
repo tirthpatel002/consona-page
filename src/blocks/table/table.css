@@ -1,0 +1,287 @@
+/*
+ * Editor-native table, styled with the editor tokens (--page-bg, --page-fg, --page-border, --page-muted,
+ * --page-muted-fg, --page-info, --page-danger, --page-radius, --page-density-factor; defined in
+ * editor/core/styles/tokens.css). Cell padding lives on the cell itself.
+ */
+.native-table {
+  --nt-radius: var(--page-r-0, var(--page-radius));
+  --nt-radius-atom: var(--page-r-2, 4px);
+  --nt-line: var(--page-border-width, 1px) solid var(--page-border);
+  --nt-line-soft: var(--page-border-width, 1px) solid color-mix(in oklab, var(--page-border) 60%, transparent);
+  --nt-select: color-mix(in srgb, var(--page-selection) 9%, transparent); /* same ghost tint; borders match fill */
+  /* the editor's selection ring (core editor.css) follows the table's rounded shell */
+  --page-selection-radius: var(--nt-radius);
+  position: relative;
+  /* top margin reserves the band the contextual toolbar sits in, so it never covers the line above */
+  margin: 2.8em 0 1em;
+  font-family: var(--page-font-sans, ui-sans-serif, system-ui, sans-serif);
+}
+
+/* Container: rounded bordered shell with a soft shadow */
+.native-table__scroll {
+  overflow-x: auto;
+  border: var(--nt-line);
+  border-radius: var(--nt-radius);
+  background: var(--page-bg);
+  color: var(--page-fg);
+  box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--page-fg) 10%, transparent);
+}
+
+.native-table__table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+}
+
+/* Cells: match document body size (editor default), soft grid lines */
+.native-table__table td,
+.native-table__table th {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: calc(0.375rem * var(--page-density-factor, 1)) calc(0.75rem * var(--page-density-factor, 1));
+  vertical-align: top;
+  text-align: left;
+  font-size: 1rem;
+  line-height: 1.65;
+  font-weight: 400;
+  color: var(--page-fg);
+  background: var(--page-bg);
+  border-bottom: var(--nt-line-soft);
+  border-right: var(--nt-line-soft);
+  overflow-wrap: anywhere;
+}
+.native-table__table tr > :last-child {
+  border-right: 0;
+}
+.native-table__table tr:last-child > * {
+  border-bottom: 0;
+}
+.native-table__table p {
+  margin: 0;
+}
+.native-table__table p + p {
+  margin-top: 0.25em;
+}
+
+/* Header cells: same size as body; label style via weight + muted color */
+.native-table__table th {
+  font-weight: 500;
+  color: var(--page-muted-fg);
+  background: var(--page-bg);
+}
+.native-table__table tr:first-child > th {
+  border-bottom: var(--nt-line);
+}
+
+/*
+ * CellSelection (prosemirror-tables adds .selectedCell): one continuous fill. Each selected cell paints its
+ * own right/bottom border in the fill colour, so no gridline shows between selected cells.
+ */
+.native-table__table tr > td.selectedCell,
+.native-table__table tr > th.selectedCell {
+  background: var(--nt-select);
+  border-right-color: var(--nt-select);
+  border-bottom-color: var(--nt-select);
+}
+/* The DOM selection is hidden during a CellSelection; keep the text it still covers fully opaque. */
+.ProseMirror-hideselection .native-table__table *::selection {
+  background: transparent;
+  color: var(--page-fg);
+}
+
+/* Column resizing (prosemirror-tables decorations) */
+.native-table__table .column-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  right: -2px;
+  z-index: 2;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--page-selection);
+  pointer-events: none;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+/* Columns resize from the header row only (guarded in headerOnlyResize.ts); draw the handle there only. */
+.native-table__table tr:has(> td) .column-resize-handle {
+  display: none;
+}
+
+/* Header-cell sort chevron (ProseMirror widget, see headerSort.ts): on hover/focus or for the active column */
+.native-table__th-sort {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.native-table__table th:hover .native-table__th-sort,
+.native-table__table th.is-sort-column .native-table__th-sort,
+.native-table__th-sort:focus-within {
+  opacity: 1;
+}
+.native-table__th-sort button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: var(--nt-line);
+  border-radius: var(--nt-radius-atom);
+  background: var(--page-bg);
+  color: var(--page-muted-fg);
+  cursor: pointer;
+}
+.native-table__th-sort button:hover {
+  color: var(--page-fg);
+  background: var(--page-secondary, var(--page-muted));
+}
+.native-table__th-sort svg {
+  display: block;
+}
+/* Room for the chevron so it never covers header text */
+.native-table__table tr:first-child > th {
+  padding-right: calc(0.75rem * var(--page-density-factor, 1) + 18px);
+}
+
+/* Contextual toolbar (React portal into the slot) */
+.native-table__toolbar-slot {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 15;
+}
+/* Toolbar shell = r-0; inset = --page-radius-step; controls = r-1 (concentric ladder). */
+.page-block-toolbar {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  gap: var(--page-radius-step);
+  padding: var(--page-radius-step);
+  white-space: nowrap;
+  background: var(--page-overlay, var(--page-bg));
+  color: var(--page-overlay-fg, var(--page-fg));
+  border: var(--nt-line);
+  border-radius: var(--page-r-0);
+  box-shadow: 0 3px 6px -1px color-mix(in oklab, var(--page-fg) 14%, transparent);
+  user-select: none;
+  overflow: hidden;
+}
+.page-block-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: var(--page-radius-step);
+}
+.page-block-toolbar__group + .page-block-toolbar__group {
+  margin-left: 0;
+  padding-left: calc(var(--page-radius-step) + 2px);
+  border-left: var(--nt-line-soft);
+}
+.page-block-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 26px;
+  line-height: 1;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--page-r-1);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.page-block-toolbar button:hover:not(:disabled) {
+  background: var(--page-hover-fill, var(--page-muted));
+}
+.page-block-toolbar button.is-active {
+  background: var(--page-selection-surface);
+  color: var(--page-selection);
+  box-shadow: none;
+}
+.page-block-toolbar button.is-danger {
+  color: var(--page-danger);
+}
+.page-block-toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Toolbar menus (Add / Remove / Sort) */
+.page-block-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.page-block-menu > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.page-block-menu > button svg {
+  display: block;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.page-block-menu > button.is-open {
+  background: var(--page-selection-surface);
+  box-shadow: none;
+  color: var(--page-selection);
+}
+.page-block-menu__popup {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-radius-step);
+  min-width: 168px;
+  max-height: min(320px, 70vh);
+  overflow-y: auto;
+  padding: var(--page-radius-step);
+  background: var(--page-overlay, var(--page-bg));
+  color: var(--page-overlay-fg, var(--page-fg));
+  border: var(--nt-line);
+  border-radius: var(--page-r-0);
+  box-shadow: 0 6px 12px -2px color-mix(in oklab, var(--page-fg) 16%, transparent);
+}
+.page-block-menu__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.page-block-menu__section + .page-block-menu__section {
+  margin-top: 0;
+  padding-top: var(--page-radius-step);
+  border-top: var(--nt-line-soft);
+}
+.page-block-toolbar .page-block-menu__popup button {
+  justify-content: flex-start;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--page-r-1);
+  text-align: left;
+  font-weight: 400;
+}
+.page-block-toolbar .page-block-menu__popup button.is-active:not(:disabled) {
+  background: var(--page-selection-fill);
+  box-shadow: none;
+}
+.page-block-toolbar .page-block-menu__popup button.is-danger.is-active:not(:disabled),
+.page-block-toolbar .page-block-menu__popup button.is-danger:hover:not(:disabled) {
+  background: var(--page-danger-subtle, var(--page-muted));
+}

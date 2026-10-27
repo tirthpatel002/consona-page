@@ -1,0 +1,78 @@
+/* Edit / inline field chrome (not block selection — see blockFeedback.css). */
+
+.page-interactive-target {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: text;
+  border-radius: var(--page-r-2);
+  transition: background 140ms ease;
+}
+
+.page-interactive-target:focus-visible {
+  outline: none;
+}
+
+.page-edit-shell {
+  border-radius: var(--page-r-1);
+  border: 1px solid var(--page-border);
+  background: var(--page-bg);
+  overflow: hidden;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.page-block .page-edit-shell:focus-within {
+  border-color: var(--page-border);
+  background: var(--page-bg);
+}
+
+.page-edit-field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5em 0.65em;
+  margin: 0;
+  outline: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-height: 2.25em;
+  line-height: 1.45;
+}
+
+.page-edit-field:focus,
+.page-edit-field:focus-visible {
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-edit-field:empty::before {
+  color: var(--page-muted-fg);
+  opacity: 0.75;
+}
+
+.page-inset-field {
+  display: block;
+  outline: none;
+  border-radius: var(--page-r-2);
+  transition: background 140ms ease;
+}
+
+.page-block .page-inset-field:focus,
+.page-block .page-inset-field:focus-visible {
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-inset-field:empty::before {
+  color: var(--page-muted-fg);
+  opacity: 0.85;
+}

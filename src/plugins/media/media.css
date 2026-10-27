@@ -1,0 +1,73 @@
+.tiptap .page-media {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin: 0.75rem auto;
+}
+.tiptap .page-media[data-align='left'] {
+  margin-left: 0;
+  margin-right: auto;
+}
+.tiptap .page-media[data-align='right'] {
+  margin-left: auto;
+  margin-right: 0;
+}
+.tiptap .page-media__frame {
+  position: relative;
+  line-height: 0;
+  border-radius: var(--page-radius);
+  overflow: hidden;
+}
+.tiptap .page-media__frame img,
+.tiptap .page-media__frame video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--page-muted);
+}
+.tiptap .page-media__resize {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 6px;
+  height: 36px;
+  margin-top: -18px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px var(--page-border);
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tiptap .page-media:hover .page-media__resize,
+.tiptap .page-media.ProseMirror-selectednode .page-media__resize {
+  opacity: 1;
+}
+.tiptap .page-media__caption {
+  margin-top: 0.35rem;
+  font-size: 0.85em;
+  color: var(--page-muted-fg);
+  text-align: center;
+  min-height: 1.2em;
+}
+/* The placeholder sits on top of the (empty) caption line. */
+.tiptap .page-media__caption {
+  position: relative;
+}
+.tiptap .page-media__caption:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: 'Add a caption';
+  position: absolute;
+  inset: 0;
+  color: var(--page-muted-fg);
+  opacity: 0.7;
+  text-align: center;
+  pointer-events: none;
+}
+.page-media-ghost {
+  position: fixed;
+  z-index: 30;
+  border: 2px solid var(--page-selection);
+  border-radius: var(--page-radius);
+  background: var(--page-selection-fill);
+  pointer-events: none;
+}

@@ -1,0 +1,460 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": { "level": 1 },
+      "content": [{ "type": "text", "text": "Launch notes: Page editor" }]
+    },
+    {
+      "type": "embedBlock",
+      "attrs": {
+        "blockType": "breadcrumb",
+        "props": {
+          "items": [
+            { "label": "Workspace", "href": "https://example.com/workspace" },
+            { "label": "Page", "href": "https://example.com/page" },
+            { "label": "Launch notes" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is the note we are sending with Monday’s cut. The editor can hold a real page: prose, structure, and the blocks a writer actually reaches for. "
+        },
+        { "type": "text", "text": "Comments stay off", "marks": [{ "type": "bold" }] },
+        { "type": "text", "text": " for this release. Everything else below is " },
+        { "type": "text", "text": "in", "marks": [{ "type": "italic" }] },
+        { "type": "text", "text": "." }
+      ]
+    },
+    {
+      "type": "embedBlock",
+      "attrs": {
+        "blockType": "callout",
+        "props": {
+          "variant": "info",
+          "title": "Rollout",
+          "body": "Turn the editor on for the docs workspace first. Keep the old composer available until Friday’s review."
+        }
+      }
+    },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "What ships" }]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Writers get the blocks they already use in docs, plus diagrams and a checklist that still works when the page is locked."
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Headings, lists, quotes, and fenced code with a copy action." }]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                { "type": "text", "text": "Callouts, toggles, and tabs for notes that should stay on the page." }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                { "type": "text", "text": "Tables, cards, columns, and images for the layout of a launch note." }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "How we roll it out" }]
+    },
+    {
+      "type": "orderedList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Monday: docs workspace only." }]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Wednesday: design and support, if Monday’s pages stay editable." }]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Friday: decide whether the old composer can go read-only." }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": { "checked": true },
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Confirm the sample page opens without a schema error." }]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": { "checked": true },
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Check locked mode: toggles open, the page itself does not enter edit chrome."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": { "checked": false },
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [{ "type": "text", "text": "Ask support to rewrite one existing article in the new editor." }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "embedBlock",
+      "attrs": {
+        "blockType": "toggle",
+        "props": {
+          "open": true,
+          "level": 2,
+          "title": "Why comments wait",
+          "body": "Anchors already exist, but the review thread still loses its place when a paragraph is split. We ship the editor without it rather than ship a thread that points at the wrong sentence."
+        }
+      }
+    },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "How a page moves" }]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "A draft stays with the writer until review. Revise loops back. Publish is the only step that leaves the workspace."
+        }
+      ]
+    },
+    {
+      "type": "embedBlock",
+      "attrs": {
+        "blockType": "mermaid",
+        "props": {
+          "source": "flowchart LR\n  Draft[Draft the page] --> Review\n  Review --> Revise\n  Revise --> Review\n  Review --> Publish"
+        }
+      }
+    },
+    {
+      "type": "embedBlock",
+      "attrs": {
+        "blockType": "tabs",
+        "props": {
+          "tabs": [
+            {
+              "id": "tab-audience",
+              "title": "Who it is for",
+              "body": "Docs writers first. They already live in long pages and need diagrams, callouts, and code without leaving the doc."
+            },
+            {
+              "id": "tab-timeline",
+              "title": "Timeline",
+              "body": "Monday docs, Wednesday design and support, Friday go or no-go on the old composer."
+            },
+            {
+              "id": "tab-risks",
+              "title": "Risks",
+              "body": "Tables pasted from the old composer may lose a header row. We will fix that before Wednesday, not after publish."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "When a page counts as ready" }]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "We only widen the rollout if edited drafts stay ahead of new drafts. The bar for the week:"
+        }
+      ]
+    },
+    {
+      "type": "embedBlock",
+      "attrs": {
+        "blockType": "equation",
+        "props": { "latex": "\\mathrm{edited} / \\mathrm{created} \\ge 2/3" }
+      }
+    },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "Two jobs, one page" }]
+    },
+    {
+      "type": "columnList",
+      "attrs": { "layout": "columns", "tracks": null },
+      "content": [
+        {
+          "type": "column",
+          "attrs": { "width": 1 },
+          "content": [
+            {
+              "type": "heading",
+              "attrs": { "level": 3 },
+              "content": [{ "type": "text", "text": "Writers" }]
+            },
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Draft in the page. Use a callout for the decision, a diagram for the flow, and code when the reader has to copy it."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "column",
+          "attrs": { "width": 1 },
+          "content": [
+            {
+              "type": "heading",
+              "attrs": { "level": 3 },
+              "content": [{ "type": "text", "text": "Reviewers" }]
+            },
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Read with the page locked. Open toggles, switch tabs, and copy code without dropping into edit mode."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "card",
+      "attrs": { "tone": "muted" },
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Decision. ", "marks": [{ "type": "bold" }] },
+            {
+              "type": "text",
+              "text": "Ship on the existing docs URL. Do not ask writers to learn a second address for this cut."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "media",
+      "attrs": {
+        "kind": "image",
+        "src": "https://picsum.photos/seed/page-launch/960/540",
+        "width": null,
+        "align": "center"
+      },
+      "content": [
+        { "type": "text", "text": "Editor canvas from the March review, used as the reference for this layout." }
+      ]
+    },
+    {
+      "type": "blockquote",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If a writer has to leave the page to explain the page, the block is missing."
+            }
+          ]
+        }
+      ]
+    },
+    { "type": "horizontalRule" },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "What we will watch" }]
+    },
+    {
+      "type": "table",
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableHeader",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Signal" }] }]
+            },
+            {
+              "type": "tableHeader",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Monday" }] }]
+            },
+            {
+              "type": "tableHeader",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "We widen if" }] }]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Pages edited after create" }] }]
+            },
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Track from day one" }] }]
+            },
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "At least two thirds" }] }]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Docs that round-trip" }] }]
+            },
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "One article" }] }]
+            },
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "No lost headings or code" }] }]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Support questions" }] }]
+            },
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Watch the docs channel" }] }]
+            },
+            {
+              "type": "tableCell",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "No blocker by Wednesday" }] }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": { "level": 2 },
+      "content": [{ "type": "text", "text": "Snippet for the docs" }]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is the example we will paste into the writer guide. It inserts the rollout callout as one block."
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": { "language": "typescript" },
+      "content": [
+        {
+          "type": "text",
+          "text": "import type { Editor } from '@tiptap/core'\n\nexport function insertRolloutNote(editor: Editor) {\n  return editor.commands.insertBlock('callout', {\n    variant: 'info',\n    title: 'Rollout',\n    body: 'Docs workspace on Monday. Old composer stays until Friday.',\n  })\n}\n"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Questions go to the docs channel before Wednesday. If the readiness bar misses, we hold design and support."
+        }
+      ]
+    }
+  ]
+}

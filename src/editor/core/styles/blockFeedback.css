@@ -1,0 +1,119 @@
+/*
+ * Embed block feedback: selection only (marquee / node select). Hover does not change a block's
+ * background or border. Focus-within clears the selection overlay so inline fields stay readable.
+ */
+
+.page-block__body {
+  box-sizing: border-box;
+}
+
+.page-block__shell {
+  position: relative;
+}
+
+.page-block__shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  background: var(--page-highlight-fill);
+}
+
+/* --- Inset embeds --- */
+.page-block[data-block-feedback='inset'] .page-block__body {
+  border-radius: var(--page-r-1);
+}
+
+.page-block[data-block-feedback='inset']
+  .page-block__body:has(> .page-equation, > .page-breadcrumb, > .page-mermaid, > .page-block-problem) {
+  padding-inline: var(--page-surface-pad-x);
+}
+
+.page-block[data-block-feedback='inset'] .page-block__body:has(> .page-toggle-embed) {
+  padding: var(--page-radius-step) var(--page-surface-pad-x);
+}
+
+.page-block[data-block-feedback='inset']:is(.is-selected, .page-block-selected, .ProseMirror-selectednode)
+  .page-block__body:not(:has(.page-edit-shell)) {
+  border-radius: var(--page-r-1);
+  background: var(--page-highlight-fill);
+  background-clip: padding-box;
+}
+
+.page-block[data-block-feedback='inset']:has(.page-edit-shell) .page-block__body,
+.page-block[data-block-feedback='inset']:focus-within .page-block__body {
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-block[data-block-feedback='inset'] .page-block__body .page-interactive-target:hover,
+.page-block[data-block-feedback='inset'] .page-block__body .page-interactive-target:focus-visible {
+  background: transparent;
+}
+
+/* --- Shell embeds (callout, tabs, …) — selection only --- */
+.page-block[data-block-feedback='shell'] .page-block__body {
+  border-radius: 0;
+}
+
+.page-block[data-block-feedback='shell']:is(.is-selected, .page-block-selected, .ProseMirror-selectednode)
+  .page-block__shell::after {
+  opacity: 1;
+}
+
+.page-block[data-block-feedback='shell']:focus-within .page-block__shell::after {
+  opacity: 0;
+}
+
+.page-block[data-block-feedback='shell']:is(.is-selected, .page-block-selected, .ProseMirror-selectednode):focus-within
+  .page-block__shell::after {
+  opacity: 0;
+}
+
+/* Native card */
+.tiptap .page-card[data-block-feedback='shell']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  background: var(--page-highlight-fill);
+}
+
+.tiptap .page-card[data-block-feedback='shell']:is(.page-block-selected, .ProseMirror-selectednode)::after {
+  opacity: 1;
+}
+
+.tiptap .page-card[data-block-feedback='shell']:focus-within::after {
+  opacity: 0;
+}
+
+.tiptap
+  .page-card[data-block-feedback='shell']:is(.page-block-selected, .ProseMirror-selectednode):focus-within::after {
+  opacity: 0;
+}
+
+/* Native table — selection only */
+.native-table[data-block-feedback='shell']:is(.is-selected, .page-block-selected, .ProseMirror-selectednode)
+  .page-block__shell::after {
+  opacity: 1;
+}
+
+.native-table[data-block-feedback='shell']:focus-within .page-block__shell::after {
+  opacity: 0;
+}
+
+/* Inline embed fields: no focus/hover chrome */
+.page-block [contenteditable='plaintext-only']:focus,
+.page-block [contenteditable='plaintext-only']:focus-visible,
+.page-block [contenteditable='true']:focus,
+.page-block [contenteditable='true']:focus-visible {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}

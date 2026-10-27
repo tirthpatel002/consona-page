@@ -1,0 +1,71 @@
+.tiptap .page-columns {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0.5rem 0;
+}
+.tiptap .page-column {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--page-r-1, var(--page-radius));
+  box-shadow: 0 0 0 1px transparent;
+  transition:
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+.tiptap .page-column:focus-within {
+  box-shadow: 0 0 0 1px var(--page-hover-ring, var(--page-border));
+}
+.tiptap .page-columns[data-layout='grid'] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+}
+.tiptap .page-columns[data-layout='grid'] > .page-column {
+  border: var(--page-border-width) solid var(--page-border);
+  border-radius: var(--page-r-1, var(--page-radius));
+  background: var(--page-muted);
+  padding: 0.5rem 0.75rem;
+}
+.tiptap .page-columns[data-layout='grid'][data-tracks='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.tiptap .page-columns[data-layout='grid'][data-tracks='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.tiptap .page-columns[data-layout='grid'][data-tracks='4'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.tiptap .page-columns[data-layout='grid'][data-tracks='5'] {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.tiptap .page-columns[data-layout='grid'][data-tracks='6'] {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+@media (max-width: 640px) {
+  .tiptap .page-columns[data-layout='grid'][data-tracks] {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  }
+  .tiptap .page-columns[data-layout='columns'] {
+    flex-direction: column;
+  }
+}
+.page-column-guide {
+  position: fixed;
+  z-index: 15;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--page-border);
+  pointer-events: none;
+}
+.page-grid-guide[data-label]:not([data-label=''])::after {
+  content: attr(data-label);
+  position: absolute;
+  top: 0;
+  left: 8px;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--page-fg);
+  color: var(--page-bg);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}

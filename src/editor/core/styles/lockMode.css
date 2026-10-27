@@ -1,0 +1,25 @@
+/*
+ * Page lock (B4): reading mode stays calm.
+ * Block surfaces never pick up a background or border on hover, in edit or locked mode.
+ * Per-control hovers (tabs, toggle chevron, links, table sort buttons, …) stay in block/plugin CSS.
+ * Locked mode hides chrome that would otherwise appear on hover or focus.
+ */
+
+.page-shell--locked .tiptap .page-column:focus-within {
+  box-shadow: 0 0 0 1px transparent;
+}
+
+.page-shell--locked .page-callout:hover .page-callout__title:has(.page-callout__field:empty:not(:focus)),
+.page-shell--locked .page-callout:focus-within .page-callout__title:has(.page-callout__field:empty) {
+  display: none;
+}
+
+.page-shell--locked .page-tabs:hover .page-tabs__remove,
+.page-shell--locked .page-tabs:hover .page-tabs__add {
+  opacity: 0;
+}
+
+.page-shell--locked .tiptap .page-media:hover .page-media__resize {
+  opacity: 0;
+  pointer-events: none;
+}

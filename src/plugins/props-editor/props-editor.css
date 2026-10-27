@@ -1,0 +1,55 @@
+.props-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.props-editor__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.props-editor__header small,
+.props-editor__empty {
+  opacity: 0.6;
+  font-size: 12px;
+}
+.props-editor__empty {
+  padding: 12px;
+}
+.props-editor textarea {
+  flex: 1;
+  min-height: 240px;
+  resize: none;
+  font:
+    11px/1.45 ui-monospace,
+    monospace;
+  padding: 8px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid color-mix(in oklab, currentColor 18%, transparent);
+  border-radius: 6px;
+}
+.props-editor__issues {
+  margin: 0;
+  padding-left: 1.2em;
+  color: #b91c1c;
+  font-size: 12px;
+  list-style: disc;
+}
+.props-editor__actions {
+  display: flex;
+  gap: 6px;
+}
+.props-editor__actions button {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+  border: 1px solid color-mix(in oklab, currentColor 18%, transparent);
+}

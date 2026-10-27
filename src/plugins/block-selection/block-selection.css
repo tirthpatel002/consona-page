@@ -1,0 +1,24 @@
+/* Marquee selection on top-level text/native nodes (embeds use blockFeedback.css). */
+.ProseMirror :is(p, h1, h2, h3, h4, h5, h6, blockquote, pre, .page-code-block, hr, ul, ol).page-block-selected,
+.ProseMirror .page-block-selected:not(.page-block):not([data-block-feedback='shell']) {
+  border-radius: var(--page-selection-radius, var(--page-r-1));
+  background: var(--page-highlight-fill);
+  background-clip: padding-box;
+}
+
+.ProseMirror .page-block.page-block-selected,
+.ProseMirror .page-block-selected[data-block-feedback='shell'],
+.ProseMirror .node-embedBlock.page-block-selected {
+  background: transparent;
+  box-shadow: none;
+}
+.ProseMirror:has(.page-block-selected) {
+  caret-color: transparent;
+}
+.page-marquee {
+  position: fixed;
+  z-index: 30;
+  border-radius: var(--page-r-1);
+  background: color-mix(in oklab, var(--page-selection) 6%, transparent);
+  pointer-events: none;
+}
