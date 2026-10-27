@@ -35,6 +35,9 @@ export default defineConfig({
         compact: 'src/package/compact.ts',
         markdown: 'src/package/markdown.ts',
         blocks: 'src/blocks/index.ts',
+        'ai-controller': 'src/package/ai-controller.ts',
+        'plugins/ai-review': 'src/plugins/ai-review/index.ts',
+        'blocks/page-preview': 'src/package/page-preview.ts',
         ...Object.fromEntries(
           plugins.map((name) => [
             `plugins/${name}`,

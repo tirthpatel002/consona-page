@@ -35,7 +35,7 @@ npm pack              # local tarball only; runs the library build first
 - [Compatibility, migrations and release gates](docs/RELEASING.md)
 
 Use `page/react` only in a browser/client component; `page/engine`, `page/store`, `page/compact` and
-`page/markdown` can be imported without browser globals. Importing an engine is DOM-free, but creating a
+`page/markdown` and `page/ai-controller` can be imported without browser globals. The full AI plugin selection helper and page previews are browser React entries. Importing an engine is DOM-free, but creating a
 Tiptap editor and editing a closed page through a detached editor still requires a DOM. The store alone
 can run in Node with memory or a host adapter. No CommonJS, server-rendered editor, or React Server
 Components support is claimed. Import `page/styles.css` once in the host.

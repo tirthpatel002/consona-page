@@ -17,8 +17,11 @@ internal paths are not a supported import surface. A future public name/version/
 | `page/styles.css`     | Core and built-in styles                                                        | Import once in host                                    |
 
 Plugin names: `text`, `lists`, `columns`, `block-actions`, `block-selection`, `formatting`, `comments`, `emoji`,
-`export`, `media`, `persistence`, `props-editor`, `json-view`. Further feature entries must be added to the
-package export map and packed-consumer checks with their implementation, not exposed through deep imports.
+`export`, `media`, `persistence`, `props-editor`, `json-view`. The AI review entry is listed separately above because selection capture pulls in browser editor code.
+Application dialogs and Page Settings UI are not library exports; hosts can supply their own UI over the
+controller/settings contracts. Page previews take a registry, page store, optional blobs and an open callback;
+the reference plugin takes the same host plus the current page id function. No preview body is persisted twice.
+Further feature entries must be added to the package export map and packed-consumer checks with their implementation.
 
 Development/package tests use Node 22.23.4 (jsdom requires >=22.22.2 on the Node 22 line).
 That test-tool minimum is not a library runtime minimum. No lower-Node compatibility matrix is claimed. React/React DOM are peer dependencies matching the tested
