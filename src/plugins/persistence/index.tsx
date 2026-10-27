@@ -5,6 +5,8 @@ import { useState } from 'react'
 import {
   createLocalStorageStore,
   StaleRevisionError,
+  StorageQuotaError,
+  UnsupportedFormatError,
   type JsonObject,
   type PagePlugin,
   type PageStore,
@@ -135,6 +137,23 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
               set(
                 'conflict',
                 'This page changed somewhere else (another tab?). Download your version before reloading: edits made here since then are not saved.',
+              )
+              return
+            }
+            if (error instanceof UnsupportedFormatError) {
+              stopped = true
+              pending = null
+              set(
+                'conflict',
+                'This page was saved by a newer version of the editor, so it was not changed. Download your version to keep what is on screen.',
+              )
+              return
+            }
+            if (error instanceof StorageQuotaError) {
+              pending ??= doc
+              set(
+                'error',
+                'The browser has no room left to save this page. Your last saved copy is kept. Free some space or download your version, then try again.',
               )
               return
             }

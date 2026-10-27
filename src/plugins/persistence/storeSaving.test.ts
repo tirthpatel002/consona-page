@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryStore, createTestEditor, type JsonObject, type PageStore } from '../../editor/core'
+import {
+  createMemoryStore,
+  createTestEditor,
+  StorageQuotaError,
+  UnsupportedFormatError,
+  type JsonObject,
+  type PageStore,
+} from '../../editor/core'
 import { createPersistencePlugin, type PersistenceSession } from '.'
 
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] })
@@ -73,6 +80,47 @@ describe('saving through a page store', () => {
     type(' second')
     await vi.advanceTimersByTimeAsync(2000)
     expect(JSON.stringify((await store.get('default'))?.doc)).toContain('first second')
+    destroy()
+  })
+
+  it('a full browser storage says so, keeps the unsaved page, and a retry saves once there is room', async () => {
+    const inner = createMemoryStore()
+    let full = true
+    const store: PageStore = {
+      ...inner,
+      put: (id, d, o) => (full ? Promise.reject(new StorageQuotaError()) : inner.put(id, d, o)),
+    }
+    const { editor, destroy, type } = make(store, null)
+    type(' big')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(editor.storage.docPersistence.status).toBe('error')
+    expect(editor.storage.docPersistence.message).toContain('no room')
+    full = false
+    editor.storage.docPersistence.retry?.()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(editor.storage.docPersistence.status).toBe('saved')
+    expect(JSON.stringify((await inner.get('default'))?.doc)).toContain('big')
+    destroy()
+  })
+
+  it('a page from a newer version stops saving and tells the user; nothing is written', async () => {
+    const inner = createMemoryStore()
+    let writes = 0
+    const store: PageStore = {
+      ...inner,
+      put: () => {
+        writes += 1
+        return Promise.reject(new UnsupportedFormatError('default', 99))
+      },
+    }
+    const { editor, destroy, type } = make(store, null)
+    type(' x')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(editor.storage.docPersistence.status).toBe('conflict')
+    expect(editor.storage.docPersistence.message).toContain('newer version')
+    type(' y')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(writes).toBe(1)
     destroy()
   })
 })

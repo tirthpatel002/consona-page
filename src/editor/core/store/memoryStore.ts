@@ -1,4 +1,5 @@
 import type { JsonObject } from '../json'
+import { FORMAT_VERSION } from './format'
 import { StaleRevisionError, type PageStore, type PageSummary, type PutOptions, type StoredPage } from './types'
 
 /** Check shared by every adapter: throws StaleRevisionError when the precondition fails. */
@@ -20,6 +21,7 @@ export function createMemoryStore(now: () => number = Date.now): PageStore {
         const next: StoredPage = {
           id,
           doc: structuredClone(doc),
+          format: FORMAT_VERSION,
           revision: (current?.revision ?? 0) + 1,
           updatedAt: now(),
         }

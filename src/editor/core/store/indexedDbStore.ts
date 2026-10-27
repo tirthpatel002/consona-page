@@ -1,4 +1,5 @@
 import type { JsonObject } from '../json'
+import { asStorageError, FORMAT_VERSION, migrateStoredPage } from './format'
 import { assertRevision } from './memoryStore'
 import type { PageStore, PageSummary, PutOptions, StoredPage } from './types'
 
@@ -68,15 +69,26 @@ export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageS
     const store = tx.objectStore(STORE)
     const current = (await request(store.get(id))) as StoredPage | undefined
     try {
+      if (current) migrateStoredPage(current)
       assertRevision(id, current, put)
     } catch (error) {
       tx.abort()
       await done(tx).catch(() => undefined)
       throw error
     }
-    const next: StoredPage = { id, doc, revision: (current?.revision ?? 0) + 1, updatedAt: now() }
-    store.put(next)
-    await done(tx)
+    const next: StoredPage = {
+      id,
+      doc,
+      format: FORMAT_VERSION,
+      revision: (current?.revision ?? 0) + 1,
+      updatedAt: now(),
+    }
+    try {
+      store.put(next)
+      await done(tx)
+    } catch (error) {
+      throw asStorageError(error)
+    }
     return next
   }
 
@@ -84,7 +96,7 @@ export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageS
     async get(id) {
       const db = await open()
       const found = (await request(db.transaction(STORE).objectStore(STORE).get(id))) as StoredPage | undefined
-      if (found) return found
+      if (found) return migrateStoredPage(found)
       if (typeof migrateLegacyLocalStorage === 'function' ? !migrateLegacyLocalStorage(id) : !migrateLegacyLocalStorage)
         return null
       const legacy = readLegacy(id)

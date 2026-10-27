@@ -5,6 +5,8 @@ export interface StoredPage {
   readonly id: string
   /** The editor document (a Tiptap/ProseMirror doc JSON object). */
   readonly doc: JsonObject
+  /** Stored format version (see FORMAT_VERSION). Older records are upgraded when read. */
+  readonly format: number
   /** Starts at 1 and grows by 1 on every successful write. */
   readonly revision: number
   /** Milliseconds since the epoch, set by the store on write. */
