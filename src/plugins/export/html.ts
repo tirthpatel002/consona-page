@@ -1,3 +1,5 @@
+import { isBlobRef } from '../media/host'
+import { asFocus, asKind, asShape, asZoom, formatBytes, isSafeLink, isSafeMediaSrc } from '../media/sources'
 import { printStyles } from './printStyles'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
 
@@ -78,19 +80,60 @@ function embedToHtml(node: DocNode): string {
 }
 
 function mediaToHtml(node: DocNode): string {
-  const kind = stringAttr(node, 'kind') === 'video' ? 'video' : 'image'
-  const src = stringAttr(node, 'src') ?? ''
+  const kind = asKind(stringAttr(node, 'kind'))
+  const rawSrc = stringAttr(node, 'src') ?? ''
+  const src = isSafeMediaSrc(kind, rawSrc) ? rawSrc : ''
+  if (!src && isBlobRef(stringAttr(node, 'blob'))) {
+    return `<p>[${escapeHtml(stringAttr(node, 'name') || 'File')}: stored in the page's file store, not included in this export]</p>`
+  }
   const width = numberAttr(node, 'width')
+  const full = (node.attrs as { full?: unknown } | undefined)?.full === true
   const align = stringAttr(node, 'align') ?? 'center'
-  const caption = inlineToHtml(node.content)
-  const frame =
-    kind === 'video'
-      ? `<video src="${escapeHtml(src)}" controls></video>`
-      : `<img src="${escapeHtml(src)}" alt="${escapeHtml(textOf({ type: 'media', content: node.content }))}">`
+  const altAttr = stringAttr(node, 'alt') ?? ''
+  const name = stringAttr(node, 'name') ?? ''
+  const size = numberAttr(node, 'size')
+  const linkRaw = stringAttr(node, 'link') ?? ''
+  const link = isSafeLink(linkRaw) ? linkRaw : ''
+  const shape = asShape(stringAttr(node, 'shape'))
+  const zoom = asZoom(numberAttr(node, 'zoom') ?? 1)
+  const fx = asFocus(numberAttr(node, 'focusX') ?? 50)
+  const fy = asFocus(numberAttr(node, 'focusY') ?? 50)
+  const captionOn = (node.attrs as { showCaption?: unknown } | undefined)?.showCaption !== false
+  const captionText = textOf({ type: 'media', content: node.content })
+  const caption = captionOn ? inlineToHtml(node.content) : ''
+  let frame: string
+  if (kind === 'video') frame = `<video src="${escapeHtml(src)}" controls></video>`
+  else if (kind === 'audio') frame = `<audio src="${escapeHtml(src)}" controls></audio>`
+  else if (kind === 'embed') {
+    frame = `<iframe src="${escapeHtml(src)}" title="${escapeHtml(altAttr || 'Embedded video')}" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
+  } else if (kind === 'bookmark') {
+    const label = name || src.replace(/^https?:\/\//i, '')
+    frame = `<a class="page-media__bookmark" href="${escapeHtml(src)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+  } else if (kind === 'file') {
+    const label = name || 'File'
+    frame = `<a href="${escapeHtml(src)}" download="${escapeHtml(label)}">${escapeHtml(label)}${size !== null ? ` (${escapeHtml(formatBytes(size))})` : ''}</a>`
+  } else {
+    const img = `<img src="${escapeHtml(src)}" alt="${escapeHtml(altAttr || captionText)}"${
+      zoom !== 1 || fx !== 50 || fy !== 50 ? ` style="--media-zoom: ${zoom}; --media-x: ${fx}%; --media-y: ${fy}%"` : ''
+    }>`
+    frame = link ? `<a href="${escapeHtml(link)}" rel="noopener noreferrer">${img}</a>` : img
+  }
+  const data =
+    (width !== null && !full ? ` data-width="${width}"` : '') +
+    (full ? ' data-full="true"' : '') +
+    (altAttr ? ` data-alt="${escapeHtml(altAttr)}"` : '') +
+    (link ? ` data-link="${escapeHtml(link)}"` : '') +
+    (kind === 'image' && shape !== 'none' ? ` data-shape="${shape}"` : '') +
+    (kind === 'image' && zoom !== 1 ? ` data-zoom="${zoom}"` : '') +
+    (kind === 'image' && fx !== 50 ? ` data-focus-x="${fx}"` : '') +
+    (kind === 'image' && fy !== 50 ? ` data-focus-y="${fy}"` : '') +
+    (kind === 'embed' ? ` data-src="${escapeHtml(src)}"` : '') +
+    (name ? ` data-name="${escapeHtml(name)}"` : '') +
+    (size !== null ? ` data-size="${size}"` : '') +
+    (captionOn ? '' : ' data-caption="off"')
   return (
-    `<figure data-type="media" data-kind="${kind}" data-align="${escapeHtml(align)}"` +
-    (width !== null ? ` data-width="${width}"` : '') +
-    ` class="page-media"><div class="page-media__frame"${width !== null ? ` style="width: ${width}px"` : ''}>` +
+    `<figure data-type="media" data-kind="${kind}" data-align="${escapeHtml(align)}"${data}` +
+    ` class="page-media"><div class="page-media__frame"${width !== null && !full ? ` style="width: ${width}px"` : ''}>` +
     `${frame}</div><figcaption>${caption}</figcaption></figure>`
   )
 }
@@ -349,23 +392,41 @@ function tableFrom(element: Element): DocNode {
 }
 
 function mediaFromFigure(figure: Element): DocNode | null {
-  const kind = figure.getAttribute('data-kind') === 'video' ? 'video' : 'image'
-  const media = kind === 'video' ? figure.querySelector('video') : figure.querySelector('img')
-  const src = media?.getAttribute('src') ?? ''
-  if (!src) return null
+  const kind = asKind(figure.getAttribute('data-kind'))
+  const raw =
+    kind === 'embed'
+      ? (figure.getAttribute('data-src') ?? '')
+      : kind === 'bookmark'
+        ? (figure.querySelector('a.page-media__bookmark')?.getAttribute('href') ?? '')
+        : kind === 'file'
+          ? (figure.querySelector('a[href]')?.getAttribute('href') ?? '')
+          : (figure.querySelector(kind === 'image' ? 'img' : kind)?.getAttribute('src') ?? '')
+  if (!raw) return null
   const widthAttr = figure.getAttribute('data-width')
   const caption = figure.querySelector('figcaption')
   const alignAttr = figure.getAttribute('data-align')
-  return {
-    type: 'media',
-    attrs: {
-      kind,
-      src,
-      width: widthAttr ? Number(widthAttr) || null : null,
-      align: alignAttr === 'left' || alignAttr === 'right' ? alignAttr : 'center',
-    },
-    content: caption ? inlineFromChildren(caption, []) : [],
+  const number = (name: string) => {
+    const value = Number(figure.getAttribute(name))
+    return figure.hasAttribute(name) && Number.isFinite(value) ? value : null
   }
+  const link = figure.getAttribute('data-link') ?? ''
+  const attrs: Record<string, unknown> = {
+    kind,
+    src: raw,
+    width: widthAttr ? Number(widthAttr) || null : null,
+    align: alignAttr === 'left' || alignAttr === 'right' ? alignAttr : 'center',
+  }
+  if (figure.hasAttribute('data-alt')) attrs.alt = figure.getAttribute('data-alt')
+  if (isSafeLink(link)) attrs.link = link
+  if (figure.getAttribute('data-caption') === 'off') attrs.showCaption = false
+  if (figure.getAttribute('data-full') === 'true') attrs.full = true
+  if (figure.hasAttribute('data-shape')) attrs.shape = asShape(figure.getAttribute('data-shape'))
+  if (number('data-zoom') !== null) attrs.zoom = asZoom(number('data-zoom'))
+  if (number('data-focus-x') !== null) attrs.focusX = asFocus(number('data-focus-x'))
+  if (number('data-focus-y') !== null) attrs.focusY = asFocus(number('data-focus-y'))
+  if (figure.hasAttribute('data-name')) attrs.name = figure.getAttribute('data-name')
+  if (number('data-size') !== null) attrs.size = number('data-size')
+  return { type: 'media', attrs, content: caption ? inlineFromChildren(caption, []) : [] }
 }
 
 /** Converts one HTML element to a block node; null means "flatten my children". */
@@ -447,6 +508,10 @@ export function blockFromElement(element: Element): DocNode | null {
     case 'img': {
       const src = element.getAttribute('src')
       return src ? { type: 'media', attrs: { kind: 'image', src, width: null, align: 'center' }, content: [] } : null
+    }
+    case 'audio': {
+      const src = element.getAttribute('src') ?? element.querySelector('source')?.getAttribute('src')
+      return src ? { type: 'media', attrs: { kind: 'audio', src, width: null, align: 'center' }, content: [] } : null
     }
     case 'video': {
       const src = element.getAttribute('src') ?? element.querySelector('source')?.getAttribute('src')

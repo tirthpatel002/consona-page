@@ -1,11 +1,15 @@
 import { Extension, type Editor } from '@tiptap/core'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
-import { MEDIA_NODE, type MediaKind } from './extensions'
-import { kindOfFile, kindOfUrl, readAsDataUrl } from './files'
+import { MEDIA_NODE } from './extensions'
+import { kindOfAny, kindOfFile, kindOfUrl, importFile } from './files'
 import { insertMedia, setMediaLayout } from './operations'
+import { openPanel } from './panelStore'
+import { clamp, type MediaKind } from './sources'
 
 const MIN_WIDTH = 80
+const KEY_STEP = 16
+const KEY_STEP_BIG = 64
 
 /** Reads each media file and inserts it at `at` (or the caret). Failures are reported through `onProblem`. */
 export async function insertFiles(
@@ -17,14 +21,19 @@ export async function insertFiles(
   let inserted = 0
   let position = at
   for (const file of files) {
-    const kind = kindOfFile(file)
+    const kind = kindOfAny(file)
     if (!kind) continue
-    const result = await readAsDataUrl(file)
+    const result = await importFile(file)
     if (!result.ok) {
       onProblem(result.reason)
       continue
     }
-    if (insertMedia.run(editor, kind, result.src, position)) {
+    const extras = {
+      showCaption: false,
+      ...(kind === 'file' ? { name: file.name, size: file.size } : {}),
+      ...(result.blob ? { blob: result.blob } : {}),
+    }
+    if (insertMedia.run(editor, kind, result.src, position, extras)) {
       inserted += 1
       if (position !== undefined) position = editor.state.selection.to
     }
@@ -36,8 +45,8 @@ export const mediaWarning = (message: string) => {
   if (typeof window !== 'undefined') window.alert(message)
 }
 
-const filesOf = (data: DataTransfer | null): File[] =>
-  data ? [...data.files].filter((file) => kindOfFile(file) !== null) : []
+const filesOf = (data: DataTransfer | null, documents: boolean): File[] =>
+  data ? [...data.files].filter((file) => (documents ? kindOfAny(file) : kindOfFile(file)) !== null) : []
 
 /** Paste and drop of image/video files, paste of a bare media URL, and drag-to-resize on the media frame. */
 export const MediaBehavior = Extension.create({
@@ -49,7 +58,7 @@ export const MediaBehavior = Extension.create({
         key: new PluginKey('pageMediaBehavior'),
         props: {
           handlePaste: (_view, event) => {
-            const files = filesOf(event.clipboardData)
+            const files = filesOf(event.clipboardData, false)
             if (files.length > 0) {
               void insertFiles(editor, files, undefined, mediaWarning)
               return true
@@ -61,8 +70,31 @@ export const MediaBehavior = Extension.create({
             }
             return false
           },
+          // A press on the picture, player area or file card selects the block; handles, links and players keep their own presses.
+          handleClickOn: (view, _pos, node, nodePos, event) => {
+            if (node.type.name !== MEDIA_NODE || !(event.target instanceof Element)) return false
+            if (!event.target.closest('.page-media__frame')) return false
+            if (event.target.closest('.page-media__resize, a, audio, video, button')) return false
+            if (view.state.selection instanceof NodeSelection && view.state.selection.from === nodePos) {
+              view.focus()
+              return true
+            }
+            view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)))
+            view.focus()
+            return true
+          },
+          handleKeyDown: (_view, event) => {
+            // Space on a selected image opens it full screen.
+            if (event.key !== ' ' || event.metaKey || event.ctrlKey || event.altKey) return false
+            const { selection } = editor.state
+            if (!(selection instanceof NodeSelection) || selection.node.type.name !== MEDIA_NODE) return false
+            if (selection.node.attrs.kind !== 'image') return false
+            event.preventDefault()
+            openPanel(editor, { type: 'fullscreen', pos: selection.from })
+            return true
+          },
           handleDrop: (view, event) => {
-            const files = filesOf(event.dataTransfer)
+            const files = filesOf(event.dataTransfer, true)
             if (files.length === 0) return false
             event.preventDefault()
             const coords = view.posAtCoords({ left: event.clientX, top: event.clientY })
@@ -83,20 +115,32 @@ function blockBoundaryAt(view: EditorView, pos: number): number {
   return $pos.depth === 0 ? pos : $pos.after(1)
 }
 
+/** Width a drag or key press leads to, snapping to the full available width near its edge. */
+export function nextWidth(current: number, delta: number, max: number): { width: number; full: boolean } {
+  const width = clamp(current + delta, MIN_WIDTH, max)
+  return { width, full: width >= max - SNAP_PX }
+}
+
+const SNAP_PX = 12
+
 function attachResize(view: EditorView, editor: Editor) {
   interface Drag {
     readonly pos: number
     readonly box: DOMRect
     readonly startX: number
+    readonly pointerId: number
+    readonly sign: 1 | -1
     readonly align: string
     readonly max: number
     readonly ghost: HTMLElement
     width: number
   }
   let drag: Drag | null = null
-  const widthFor = (current: Drag, clientX: number): number => {
-    const delta = (clientX - current.startX) * (current.align === 'center' ? 2 : 1)
-    return Math.max(MIN_WIDTH, Math.min(current.max, current.box.width + delta))
+  const maxOf = (figure: HTMLElement) =>
+    figure.parentElement?.getBoundingClientRect().width ?? view.dom.getBoundingClientRect().width
+  const widthFor = (current: Drag, clientX: number) => {
+    const delta = (clientX - current.startX) * current.sign * (current.align === 'center' ? 2 : 1)
+    return nextWidth(current.box.width, delta, current.max)
   }
   // The preview is a ghost frame: changing the figure's own style would make ProseMirror redraw it mid-drag.
   const place = (current: Drag) => {
@@ -105,13 +149,18 @@ function attachResize(view: EditorView, editor: Editor) {
       align === 'left' ? box.left : align === 'right' ? box.right - width : box.left + (box.width - width) / 2
     ghost.style.left = `${left}px`
     ghost.style.width = `${width}px`
+    ghost.dataset.snap = width >= current.max - SNAP_PX ? 'full' : ''
   }
-  const onDown = (event: MouseEvent) => {
-    if (event.button !== 0 || !(event.target instanceof Element)) return
-    const handle = event.target.closest('.page-media__resize')
+  const mediaPosOf = (figure: HTMLElement): number | null => {
+    const caption = figure.querySelector('figcaption')
+    return caption ? view.posAtDOM(caption, 0) - 1 : null
+  }
+  const onDown = (event: PointerEvent) => {
+    if (!editor.isEditable || event.button !== 0 || !(event.target instanceof Element)) return
+    const handle = event.target.closest<HTMLElement>('.page-media__resize')
     const figure = handle?.closest<HTMLElement>('figure.page-media')
-    const caption = figure?.querySelector('figcaption')
-    if (!handle || !figure || !caption) return
+    const pos = figure ? mediaPosOf(figure) : null
+    if (!handle || !figure || pos === null) return
     event.preventDefault()
     event.stopPropagation()
     const box = figure.getBoundingClientRect()
@@ -122,42 +171,120 @@ function attachResize(view: EditorView, editor: Editor) {
     ghost.style.height = `${frame.height}px`
     document.body.appendChild(ghost)
     drag = {
-      pos: view.posAtDOM(caption, 0) - 1,
+      pos,
       box,
       startX: event.clientX,
+      pointerId: event.pointerId,
+      sign: handle.getAttribute('data-edge') === 'left' ? -1 : 1,
       align: figure.getAttribute('data-align') ?? 'center',
-      max: view.dom.getBoundingClientRect().width,
+      max: maxOf(figure),
       ghost,
       width: box.width,
     }
     place(drag)
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+    window.addEventListener('keydown', onKeyDown, true)
   }
-  const onMove = (event: MouseEvent) => {
-    if (!drag) return
-    drag.width = widthFor(drag, event.clientX)
+  const onMove = (event: PointerEvent) => {
+    if (!drag || event.pointerId !== drag.pointerId) return
+    drag.width = widthFor(drag, event.clientX).width
     place(drag)
   }
   const finish = (commit: boolean, clientX: number) => {
-    window.removeEventListener('mousemove', onMove)
-    window.removeEventListener('mouseup', onUp)
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onCancel)
+    window.removeEventListener('keydown', onKeyDown, true)
     const current = drag
     drag = null
     if (!current) return
     current.ghost.remove()
     if (!commit) return
-    const width = widthFor(current, clientX)
-    if (view.state.doc.nodeAt(current.pos)?.type.name === MEDIA_NODE) setMediaLayout.run(editor, current.pos, { width })
+    const { width, full } = widthFor(current, clientX)
+    if (view.state.doc.nodeAt(current.pos)?.type.name === MEDIA_NODE) {
+      setMediaLayout.run(editor, current.pos, full ? { width: null, full: true } : { width, full: false })
+    }
   }
-  const onUp = (event: MouseEvent) => finish(true, event.clientX)
-  view.dom.addEventListener('mousedown', onDown, true)
+  const onUp = (event: PointerEvent) => finish(true, event.clientX)
+  const onCancel = () => finish(false, 0)
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Escape') return
+    event.preventDefault()
+    event.stopPropagation()
+    finish(false, 0)
+  }
+  /** Arrow keys on a focused handle change the width; Home resets it, End makes it full width. */
+  const onHandleKey = (event: KeyboardEvent) => {
+    if (!editor.isEditable || !(event.target instanceof Element)) return
+    const handle = event.target.closest<HTMLElement>('.page-media__resize')
+    const figure = handle?.closest<HTMLElement>('figure.page-media')
+    const pos = figure ? mediaPosOf(figure) : null
+    if (!handle || !figure || pos === null) return
+    const step = event.shiftKey ? KEY_STEP_BIG : KEY_STEP
+    const grow = handle.getAttribute('data-edge') === 'left' ? 'ArrowLeft' : 'ArrowRight'
+    const delta = event.key === grow ? step : event.key === 'ArrowLeft' || event.key === 'ArrowRight' ? -step : 0
+    if (delta !== 0) {
+      const next = nextWidth(figure.getBoundingClientRect().width, delta, maxOf(figure))
+      setMediaLayout.run(editor, pos, next.full ? { width: null, full: true } : { width: next.width, full: false })
+    } else if (event.key === 'Home') setMediaLayout.run(editor, pos, { width: null, full: false })
+    else if (event.key === 'End') setMediaLayout.run(editor, pos, { width: null, full: true })
+    else return
+    event.preventDefault()
+    event.stopPropagation()
+    requestAnimationFrame(() => {
+      const again = view.nodeDOM(pos)
+      if (again instanceof HTMLElement)
+        again
+          .querySelector<HTMLElement>(`.page-media__resize[data-edge="${handle.getAttribute('data-edge')}"]`)
+          ?.focus()
+    })
+  }
+  view.dom.addEventListener('pointerdown', onDown, true)
+  view.dom.addEventListener('keydown', onHandleKey, true)
+  /** Keeps the contextual bar inside the editor column: shifts it left/right when the block sits near an edge. */
+  const clampBar = () => {
+    const slot = view.dom.querySelector<HTMLElement>('.page-media__toolbar-slot:not(:empty)')
+    if (!slot) return
+    slot.style.left = ''
+    const host = view.dom.getBoundingClientRect()
+    slot.style.maxWidth = `${Math.max(120, Math.floor(host.width))}px`
+    const rect = slot.getBoundingClientRect()
+    if (rect.width === 0) return
+    const left = host.left
+    const right = host.right
+    let shift = 0
+    if (rect.right > right) shift = right - rect.right
+    if (rect.left + shift < left) shift = left - rect.left
+    // `left`, not a transform: a transformed ancestor would break the fixed-position menus inside the bar.
+    if (shift !== 0) slot.style.left = `${Math.round(shift)}px`
+  }
+  window.addEventListener('resize', clampBar)
+  // The bar content is a React portal that fills in after the selection update, so watch for it too.
+  const watcher = new MutationObserver(() => requestAnimationFrame(clampBar))
+  watcher.observe(view.dom, { childList: true, subtree: true })
   return {
+    update() {
+      requestAnimationFrame(clampBar)
+    },
     destroy() {
-      view.dom.removeEventListener('mousedown', onDown, true)
+      window.removeEventListener('resize', clampBar)
+      watcher.disconnect()
+      view.dom.removeEventListener('pointerdown', onDown, true)
+      view.dom.removeEventListener('keydown', onHandleKey, true)
       finish(false, 0)
     },
   }
 }
 
-export const kindLabel = (kind: MediaKind) => (kind === 'image' ? 'Image' : 'Video')
+export const kindLabel = (kind: MediaKind) =>
+  kind === 'image'
+    ? 'Image'
+    : kind === 'video'
+      ? 'Video'
+      : kind === 'audio'
+        ? 'Audio'
+        : kind === 'file'
+          ? 'File'
+          : 'Embed'
