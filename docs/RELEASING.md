@@ -21,7 +21,7 @@ npm pack --dry-run
 only the packed package plus explicit test tools. It checks every export target is packed, excludes application
 and source trees, imports store/engine/compact/Markdown without window/document, exercises revision-checked
 storage and settings, constructs a packed editor in jsdom, applies formatted engine edits, replays and undoes
-them, compiles public consumer types under both NodeNext and Bundler (`strict`, no `skipLibCheck`), and builds a
+them, exercises the packed closed-page factory (create/edit/replay/undo/lock refusal), compiles public consumer types under both NodeNext and Bundler (`strict`, no `skipLibCheck`), and builds a
 browser consumer. It removes temporary files unless `KEEP_PACKAGE_CONSUMER=1` is set.
 
 `npm run build` is the demo build. `npm run build:library` is the package build; do not substitute one for the
