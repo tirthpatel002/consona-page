@@ -9,7 +9,7 @@ import {
   createMemoryStore,
   createPageRegistry,
   RegistryError,
-  type PageRegistry,
+  type PageListRegistry as PageRegistry,
   type PageStore,
   type RegistryStorage,
 } from './index'

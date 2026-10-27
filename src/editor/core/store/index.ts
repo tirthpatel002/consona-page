@@ -17,7 +17,7 @@ export {
   RegistryError,
   type CreateOptions,
   type PageRecord,
-  type PageRegistry,
+  type PageRegistry as PageListRegistry,
   type RegistryErrorCode,
   type RegistryOptions,
   type RegistryStorage,
