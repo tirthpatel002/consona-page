@@ -1,4 +1,5 @@
 import { Extension, type AnyExtension } from '@tiptap/core'
+import { blockIdExtension } from '../blockId'
 import { createBlockNode } from '../block/blockNode'
 import { pageLockExtension } from '../lock'
 import { createSlashExtension } from '../slash/slashExtension'
@@ -17,6 +18,7 @@ export function createExtensions(registry: PageRegistry, ui: EditorUiStores): An
     ...registry.extensions,
     createBlockNode({ blocks: registry.blocks }),
     pageLockExtension,
+    blockIdExtension,
     createShortcutsExtension(registry),
     createSlashExtension({ items: registry.slashItems, store: ui.slash }),
   ]

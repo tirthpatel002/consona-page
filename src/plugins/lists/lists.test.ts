@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { createTestEditor, typeText } from '../../editor/core'
+import { createTestEditor, plainHtml, typeText } from '../../editor/core'
 import { textPlugin } from '../text'
 import { listsPlugin } from '.'
 import { setListMarker, toggleChecklist } from './operations'
@@ -12,7 +12,7 @@ describe('lists plugin', () => {
     const { editor, destroy } = make('<p></p>')
     editor.commands.focus('end')
     typeText(editor, '[ ] a')
-    expect(editor.getHTML()).toContain('data-type="taskList"')
+    expect(plainHtml(editor)).toContain('data-type="taskList"')
     editor.commands.splitListItem('taskItem')
     typeText(editor, 'b')
     editor.commands.sinkListItem('taskItem')
@@ -26,28 +26,29 @@ describe('lists plugin', () => {
     const { editor, destroy } = make('<p>todo</p>')
     editor.commands.focus('end')
     toggleChecklist.run(editor)
-    expect(editor.getHTML()).toContain('taskList')
+    expect(plainHtml(editor)).toContain('taskList')
     editor.commands.undo()
-    expect(editor.getHTML()).toBe('<p>todo</p>')
+    expect(plainHtml(editor)).toBe('<p>todo</p>')
     destroy()
   })
 
   it('sets and validates list markers', () => {
     const { editor, destroy } = make('<ul><li><p>x</p></li></ul>')
     setListMarker.run(editor, 0, 'square')
-    expect(editor.getHTML()).toContain('data-marker="square"')
+    expect(plainHtml(editor)).toContain('data-marker="square"')
     editor.commands.setContent('<ul data-marker="bogus"><li><p>x</p></li></ul>')
-    expect(editor.getHTML()).not.toContain('bogus')
+    expect(plainHtml(editor)).not.toContain('bogus')
     destroy()
   })
 
   it('sets the marker from a list item position as one undo step', () => {
     const { editor, destroy } = make('<ul><li><p>x</p></li><li><p>y</p></li></ul>')
-    const before = editor.getHTML()
+    const trailing = /<p><\/p>$/ // the editor keeps an empty paragraph after a final list
+    const before = plainHtml(editor).replace(trailing, '')
     expect(setListMarker.run(editor, 1, 'circle')).toBe(true)
-    expect(editor.getHTML()).toContain('data-marker="circle"')
+    expect(plainHtml(editor)).toContain('data-marker="circle"')
     editor.commands.undo()
-    expect(editor.getHTML().replace(/<p><\/p>$/, '')).toBe(before)
+    expect(plainHtml(editor).replace(trailing, '')).toBe(before)
     destroy()
   })
 
@@ -55,7 +56,7 @@ describe('lists plugin', () => {
     const { editor, destroy } = make('<p></p>')
     editor.commands.focus('end')
     typeText(editor, '- a')
-    expect(editor.getHTML()).toContain('<ul>')
+    expect(plainHtml(editor)).toContain('<ul>')
     destroy()
   })
 })

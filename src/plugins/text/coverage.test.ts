@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { createTestEditor, typeText } from '../../editor/core'
+import { createTestEditor, plainHtml, typeText } from '../../editor/core'
 import { listsPlugin } from '../lists'
 import { togglePlugin } from '../../blocks/toggle'
 import { textPlugin } from '.'
@@ -21,9 +21,9 @@ describe('text coverage', () => {
     expect(titles).toEqual(expect.arrayContaining(['Quote', 'Divider']))
     const { editor, destroy } = make('<p>quoted</p>')
     textSlashItems.find((item) => item.title === 'Quote')?.run(editor)
-    expect(editor.getHTML()).toContain('<blockquote>')
+    expect(plainHtml(editor)).toContain('<blockquote>')
     editor.commands.undo()
-    expect(editor.getHTML()).toBe('<p>quoted</p>')
+    expect(plainHtml(editor)).toBe('<p>quoted</p>')
     destroy()
   })
 
@@ -32,14 +32,14 @@ describe('text coverage', () => {
       const { editor, destroy } = make()
       editor.commands.focus('end')
       typeText(editor, `${typed}x`)
-      expect(editor.getHTML(), typed).toContain('data-type="taskList"')
+      expect(plainHtml(editor), typed).toContain('data-type="taskList"')
       destroy()
     }
     const { editor, destroy } = make()
     editor.commands.focus('end')
     typeText(editor, 'a **b** `c`')
-    expect(editor.getHTML()).toContain('<strong>b</strong>')
-    expect(editor.getHTML()).toContain('<code>c</code>')
+    expect(plainHtml(editor)).toContain('<strong>b</strong>')
+    expect(plainHtml(editor)).toContain('<code>c</code>')
     destroy()
   })
 })
@@ -55,7 +55,7 @@ describe('code block', () => {
         ],
       },
     })
-    expect(editor.getHTML()).toContain('language-javascript')
+    expect(plainHtml(editor)).toContain('language-javascript')
     expect(editor.getJSON().content?.[0]?.attrs?.language).toBe('javascript')
     destroy()
   })

@@ -156,6 +156,7 @@ describe('turn into from non-text blocks', () => {
     })
     const blocks: string[] = []
     editor.state.doc.forEach((child) => blocks.push(`${child.type.name}:${child.textContent}`))
+    if (blocks.at(-1) === 'paragraph:') blocks.pop() // the editor's own empty trailing paragraph
     expect(blocks).toEqual(['paragraph:line one', 'paragraph:line two'])
     destroy()
   })
@@ -179,6 +180,7 @@ describe('turn into from non-text blocks', () => {
     )
     const blocks: string[] = []
     editor.state.doc.forEach((child) => blocks.push(`${child.type.name}:${child.textContent}`))
+    if (blocks.at(-1) === 'paragraph:') blocks.pop() // the editor's own empty trailing paragraph
     expect(blocks).toEqual(['paragraph:One', 'paragraph:Two'])
     destroy()
 

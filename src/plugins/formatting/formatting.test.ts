@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { createTestEditor, typeText } from '../../editor/core'
+import { createTestEditor, plainHtml, typeText } from '../../editor/core'
 import { listsPlugin } from '../lists'
 import { textPlugin } from '../text'
 import { formattingPlugin } from '.'
@@ -15,7 +15,7 @@ describe('formatting plugin', () => {
     setTextColor.run(editor, '#d44c47')
     expect(editor.getAttributes('textStyle').color).toBe('#d44c47')
     editor.commands.undo()
-    expect(editor.getHTML()).toBe('<p>hello</p>')
+    expect(plainHtml(editor)).toBe('<p>hello</p>')
     destroy()
   })
 
@@ -59,7 +59,7 @@ describe('formatting plugin', () => {
       editor.commands.setContent('<p></p>')
       editor.commands.focus('end')
       typeText(editor, typed)
-      expect(editor.getHTML(), typed).toContain(expected)
+      expect(plainHtml(editor), typed).toContain(expected)
       destroy()
     }
   })

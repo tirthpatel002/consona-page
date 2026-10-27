@@ -2,6 +2,7 @@
 export type { JsonObject, JsonPrimitive, JsonValue } from './json'
 export { isJsonObject, toJsonObject } from './json'
 export { isSafeUrl } from './safeUrl'
+export { assignBlockIds, ensureBlockIds, isBlockId, newBlockId } from './blockId'
 export * from './store'
 export type {
   BlockAction,
@@ -76,7 +77,7 @@ export { Icon, lucideStrokeForSize, type IconName } from './ui/Icon'
 export { Popover, type PopoverProps } from './ui/Popover'
 export { Menu, type MenuEntry } from './ui/Menu'
 export { ColorPicker, type ColorChoice, type ColorPickerProps } from './ui/ColorPicker'
-export { createTestEditor, typeText, type TestEditor } from './testing/createTestEditor'
+export { plainHtml, createTestEditor, typeText, type TestEditor } from './testing/createTestEditor'
 export type { PageRegistry } from './registry/composePlugins'
 export { composePlugins, PluginConflictError, BLOCK_SLASH_GROUP } from './registry/composePlugins'
 export { PageEditor, usePageController, type PageController, type PageControllerOptions } from './PageEditor'

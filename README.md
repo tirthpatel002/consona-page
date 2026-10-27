@@ -232,6 +232,15 @@ The demo saves the page to IndexedDB through the page store (`src/editor/core/st
 - There is still no automatic recoverable draft: "Download my version" is the only way to keep unsaved edits from a conflict, and closing the tab after confirming the browser prompt loses them.
 - Not done: oversized media is stored inside the document and can hit storage limits (not checked or reported separately), version history and comments still use localStorage, there is no cross-tab live update, and the status wording is first-pass.
 
+## Block ids
+
+Every block node (paragraphs, headings, list and task items, tables and their rows and cells, columns, toggles, media, embed blocks) has a `blockId` attribute: "b" plus nine base36 characters, unique within the page. This is the base for the engine, search and anchors that come later; nothing uses it yet.
+
+- An old page gets ids when it loads. The assignment is not an undo step, and the autosave stores it, so opening an old page writes it once (a second tab open on the same old page will then see a conflict on its next save).
+- New blocks get an id when they are created. Typing, undo and moving a block keep ids. A pasted or duplicated copy gets a new id and the original keeps its own; a malformed id or an id seen twice (for example from pasted HTML) is replaced.
+- Ids are written to the editor's HTML as `data-block-id`, so a copy carries them; the HTML and Markdown exporters do not write them.
+- Limits: ids are not yet checked by the stored-page migration (the store keeps whatever the editor wrote), which parts of a table or list count as "a block" for the engine is not decided, and the id of a block that is split (Enter in a paragraph) follows the editor's default: the new half gets a new id.
+
 ## Bundle size
 
 `npm run build` → one JS chunk ≈ 762 kB min / 240 kB gzip (Tiptap/ProseMirror and React DOM are most of it) and

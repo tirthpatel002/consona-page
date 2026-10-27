@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import StarterKit from '@tiptap/starter-kit'
 import { describe, expect, it } from 'vitest'
-import { createTestEditor } from '../testing/createTestEditor'
+import { createTestEditor, plainHtml } from '../testing/createTestEditor'
 import { operationOf } from './defineOperation'
 import { moveBlocksTo, setLink, toggleMark, unsetLink } from './operations'
 
@@ -15,10 +15,10 @@ describe('operations', () => {
     editor.on('transaction', ({ transaction }) => seen.push(operationOf(transaction)))
     editor.commands.selectAll()
     expect(toggleMark.run(editor, 'bold')).toBe(true)
-    expect(editor.getHTML()).toContain('<strong>hello</strong>')
+    expect(plainHtml(editor)).toContain('<strong>hello</strong>')
     expect(seen).toContain('toggleMark')
     editor.commands.undo()
-    expect(editor.getHTML()).toBe('<p>hello</p>')
+    expect(plainHtml(editor)).toBe('<p>hello</p>')
     destroy()
   })
 
@@ -29,9 +29,9 @@ describe('operations', () => {
     })
     editor.commands.selectAll()
     setLink.run(editor, 'https://example.com')
-    expect(editor.getHTML()).toContain('href="https://example.com"')
+    expect(plainHtml(editor)).toContain('href="https://example.com"')
     unsetLink.run(editor)
-    expect(editor.getHTML()).not.toContain('href')
+    expect(plainHtml(editor)).not.toContain('href')
     destroy()
   })
 
@@ -43,13 +43,13 @@ describe('operations', () => {
     const positions: number[] = []
     editor.state.doc.forEach((_node, offset) => positions.push(offset))
     const [first = 0, second = 0, third = 0] = positions
-    const before = editor.getHTML()
+    const before = plainHtml(editor)
     expect(moveBlocksTo.run(editor, first, second, third)).toBe(true)
-    expect(editor.getHTML()).toBe('<p>b</p><p>a</p><p>c</p>')
+    expect(plainHtml(editor)).toBe('<p>b</p><p>a</p><p>c</p>')
     editor.commands.undo()
-    expect(editor.getHTML()).toBe(before)
+    expect(plainHtml(editor)).toBe(before)
     expect(moveBlocksTo.run(editor, first, second, null)).toBe(true)
-    expect(editor.getHTML()).toBe('<p>b</p><p>c</p><p>a</p>')
+    expect(plainHtml(editor)).toBe('<p>b</p><p>c</p><p>a</p>')
     expect(moveBlocksTo.run(editor, second, third, third)).toBe(false)
     destroy()
   })

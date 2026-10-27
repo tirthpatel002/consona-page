@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import StarterKit from '@tiptap/starter-kit'
 import { defineOperation } from '../operations/defineOperation'
-import { createTestEditor } from '../testing/createTestEditor'
+import { createTestEditor, plainHtml } from '../testing/createTestEditor'
 import { openSlashMenuBelow, removeSlashRange } from './operations'
 
 const insertDivider = defineOperation('insertDivider', (chain) => chain.setHorizontalRule())
@@ -16,7 +16,7 @@ describe('"+" menu and undo', () => {
   it('opening the menu from "+" adds a scaffold that is not an undo step', () => {
     const { editor, destroy } = setup()
     openSlashMenuBelow.run(editor, 0)
-    expect(editor.getHTML()).toBe('<p>one</p><p></p>')
+    expect(plainHtml(editor)).toBe('<p>one</p><p></p>')
     expect(editor.can().undo()).toBe(false)
     destroy()
   })
@@ -28,7 +28,7 @@ describe('"+" menu and undo', () => {
     const from = editor.state.doc.child(0).nodeSize + 1
     removeSlashRange.run(editor, from, from, true)
     insertDivider.run(editor)
-    expect(editor.getHTML()).toContain('<hr>')
+    expect(plainHtml(editor)).toContain('<hr>')
     expect(editor.getText()).not.toContain('/')
     editor.commands.undo()
     expect(editor.getJSON()).toEqual(before)

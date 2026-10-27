@@ -1,5 +1,6 @@
 import { Editor, type Content } from '@tiptap/core'
 import { composePlugins, type PageRegistry } from '../registry/composePlugins'
+import { ensureBlockIds } from '../blockId'
 import { createExtensions } from '../registry/createExtensions'
 import { PanelStore } from '../plugin/panelStore'
 import type { PagePlugin } from '../plugin/types'
@@ -25,6 +26,7 @@ export function createTestEditor({
   const registry = composePlugins(plugins)
   const extensions = createExtensions(registry, { slash: new SlashStore(), panels: new PanelStore() })
   const editor = new Editor({ extensions, content })
+  ensureBlockIds(editor) // the editor assigns ids on create asynchronously; tests snapshot right away
   return { editor, registry, destroy: () => editor.destroy() }
 }
 
@@ -38,3 +40,7 @@ export function typeText(editor: Editor, text: string): void {
     if (!handled) editor.view.dispatch(editor.state.tr.insertText(char, from, to))
   }
 }
+
+/** The editor's HTML without block ids, for tests that check structure and not identity. */
+export const plainHtml = (editor: { getHTML: () => string }): string =>
+  editor.getHTML().replace(/ data-block-id="[^"]*"/g, '')

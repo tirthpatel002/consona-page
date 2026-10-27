@@ -8,6 +8,7 @@ import {
   turnIntoSelectionContext,
   runTurnIntoOnSelection,
   composePlugins,
+  plainHtml,
 } from '../src/editor/core'
 import { pagePlugins } from './plugins'
 
@@ -54,7 +55,7 @@ describe('turn into selection context (D2)', () => {
     if (context?.kind !== 'partial') throw new Error('expected partial')
     runTurnIntoOnSelection(editor, definition('text:turn-into-h1'), context)
     editor.commands.undo()
-    expect(editor.getHTML()).toBe('<p>before mid after</p>')
+    expect(plainHtml(editor)).toBe('<p>before mid after</p>')
     destroy()
   })
 
@@ -100,7 +101,7 @@ describe('turn into selection context (D2)', () => {
     // The editor appends an empty paragraph when a change leaves the document ending on a non-paragraph.
     expect(types).toEqual(['heading', 'heading', 'paragraph'])
     editor.commands.undo()
-    expect(editor.getHTML()).toBe('<p>one</p><p>two</p>')
+    expect(plainHtml(editor)).toBe('<p>one</p><p>two</p>')
     destroy()
   })
 
