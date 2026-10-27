@@ -14,7 +14,7 @@ import {
 } from './demoSession'
 import { PagesSidebar } from './PagesSidebar'
 import { PageToolbar } from './PageToolbar'
-import { SaveStatus } from './SaveStatus'
+import { inStack, SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
 import { ExportNotice } from './ExportNotice'
 import { pagePlugins } from './plugins'
@@ -57,6 +57,16 @@ function Page({
       <PageToolbar page={page} />
       {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
       <SidecarStatus errorHost={errorHost} />
+      {page.lockSaveFailed &&
+        inStack(
+          errorHost,
+          <div className="save-status is-error" role="alert">
+            <span>
+              The page lock could not be saved on this device. It holds in this tab, but may not apply after a reload or
+              to tools that work on the closed page.
+            </span>
+          </div>,
+        )}
       <ExportNotice host={errorHost} />
       <PageEditor page={page} />
     </div>
