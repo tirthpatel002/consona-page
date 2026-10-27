@@ -3,13 +3,13 @@ import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createMemoryStore,
+  documentIdentityExtension,
   createTestEditor,
   StorageQuotaError,
   UnsupportedFormatError,
   type JsonObject,
   type PageStore,
 } from '../../editor/core'
-import { documentIdentityExtension } from '../../editor/core/identity'
 import { createPersistencePlugin, type PersistenceSession } from '.'
 
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] })
