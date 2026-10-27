@@ -1,6 +1,7 @@
 // Public API of the editor core. Plugins and the app import from here only.
 export type { JsonObject, JsonPrimitive, JsonValue } from './json'
 export { isJsonObject, toJsonObject } from './json'
+export { isSafeUrl } from './safeUrl'
 export type {
   BlockAction,
   BlockActionContext,

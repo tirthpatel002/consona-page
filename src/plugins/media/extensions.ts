@@ -1,10 +1,14 @@
 import { mergeAttributes, Node } from '@tiptap/core'
+import { isSafeUrl } from '../../editor/core'
 
 export type MediaKind = 'image' | 'video'
 export type MediaAlign = 'left' | 'center' | 'right'
 
 export const MEDIA_NODE = 'media'
 const ALIGNS: readonly MediaAlign[] = ['left', 'center', 'right']
+
+/** A media source the schema accepts: allowlisted URL schemes only, otherwise empty. */
+const safeSrc = (value: unknown): string => (typeof value === 'string' && isSafeUrl(value) ? value : '')
 
 const asAlign = (value: unknown): MediaAlign => ALIGNS.find((a) => a === value) ?? 'center'
 
@@ -24,7 +28,7 @@ export const Media = Node.create({
       },
       src: {
         default: '',
-        parseHTML: (el) => el.querySelector('img, video')?.getAttribute('src') ?? '',
+        parseHTML: (el) => safeSrc(el.querySelector('img, video')?.getAttribute('src')),
       },
       width: {
         default: null,
@@ -40,7 +44,8 @@ export const Media = Node.create({
     return [{ tag: 'figure[data-type="media"]', contentElement: 'figcaption' }]
   },
   renderHTML({ node }) {
-    const { kind, src, width, align } = node.attrs
+    const { kind, width, align } = node.attrs
+    const src = safeSrc(node.attrs.src)
     const width_ = typeof width === 'number' && width > 0 ? width : null
     const frame =
       kind === 'video'
