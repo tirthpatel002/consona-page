@@ -87,7 +87,8 @@ for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'Element', 
 const { createTestEditor } = await import('${pkg.name}/react')
 const { textPlugin } = await import('${pkg.name}/plugins/text')
 const { listsPlugin } = await import('${pkg.name}/plugins/lists')
-const { createPageEngine } = await import('${pkg.name}/engine')
+const { createPageEngine, createPagesEngine, createMemoryRequestLog } = await import('${pkg.name}/engine')
+const stores = await import('${pkg.name}/store')
 const markdown = await import('${pkg.name}/markdown')
 const session = createTestEditor({ plugins: [textPlugin(), listsPlugin], content: '<p>Before</p>' })
 try {
@@ -103,6 +104,26 @@ try {
   assert.match(engine.readCompact().text, /After/)
   assert.equal(engine.undo().ok, true)
   assert.equal(session.editor.getText(), 'Before')
+  const store = stores.createMemoryStore()
+  const settings = stores.createSettingsStore(stores.createMemorySettingsStorage())
+  const registry = stores.createPageRegistry({ storage: stores.createMemoryRegistryStorage(), pages: store, settings })
+  const pages = createPagesEngine({ registry, store, settings, requestLog: createMemoryRequestLog(), markdown: {
+    parseInline: markdown.parseInline, parseBlocks: text => markdown.fromMarkdown(text).content ?? [], inlineToMarkdown: markdown.inlineToMarkdown,
+  }, createEditor: doc => createTestEditor({ plugins: [textPlugin(), listsPlugin], content: doc ?? '' }) })
+  const created = await pages.create({ title: 'Packed page', text: 'Original' })
+  assert.equal(created.ok, true)
+  const snapshot = await pages.outline(created.id)
+  assert.equal(snapshot.ok, true)
+  const change = { requestId: 'closed-one', baseRevision: snapshot.revision, steps: [{ op: 'replaceText', id: snapshot.blocks[0].id, text: 'Changed closed page' }] }
+  assert.equal((await pages.edit(created.id, change)).ok, true)
+  assert.equal((await pages.edit(created.id, change)).replayed, true)
+  assert.equal((await store.get(created.id)).doc.content[0].content[0].text, 'Changed closed page')
+  assert.equal((await pages.undo(created.id)).ok, true)
+  await settings.set(created.id, { locked: true })
+  const locked = await pages.edit(created.id, { ...change, requestId: 'closed-two' })
+  assert.equal(locked.ok, false)
+  assert.equal(locked.errors[0].code, 'locked')
+
 } finally {
   session.destroy()
   dom.window.close()
