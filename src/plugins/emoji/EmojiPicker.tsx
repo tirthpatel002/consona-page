@@ -81,7 +81,7 @@ const browseTabSections = (tab: EmojiTabId, recents: readonly EmojiEntry[], colu
 }
 
 /**
- * Notion-style emoji picker: search, categories, frequently-used recents, arrow-key grid.
+ * Emoji picker: search, categories, frequently-used recents, arrow-key grid.
  * With an editor, a pick inserts into the document. `onSelect` receives the character instead
  * (the page banner uses this and does not insert).
  */

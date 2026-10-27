@@ -1,4 +1,4 @@
-# Page — a pluggable, Notion-like block editor
+# Page — a pluggable block editor
 
 Vite + React 19 + TypeScript + Tiptap 3. One Tiptap (ProseMirror) editor is the whole page: text is editable
 everywhere and selections span text and blocks. Rich blocks are plain React components embedded as atom nodes

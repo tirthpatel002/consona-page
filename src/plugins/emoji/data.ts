@@ -1,7 +1,7 @@
 /**
  * Full emoji coverage backed by the maintained `emojibase-data` package (MIT), lazy-loaded via
  * dynamic import so the 560 KB dataset stays out of the initial bundle. Categories follow
- * Notion's picker (Smileys & People ... Flags); skin-tone variants come from the dataset's
+ * the standard picker categories (Smileys & People ... Flags); skin-tone variants come from the dataset's
  * `skins` where provided.
  */
 export interface EmojiEntry {

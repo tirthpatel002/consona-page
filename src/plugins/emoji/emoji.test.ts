@@ -62,7 +62,7 @@ describe('D1 ":" suggestion', () => {
     const { editor, destroy } = make('<p>at 12</p>')
     editor.commands.setTextSelection(editor.state.doc.content.size - 1)
     typeText(editor, ':30')
-    // clocks match (as in Notion/Slack), but nothing changes unless the user picks one
+    // clocks match (as in common chat apps), but nothing changes unless the user picks one
     expect(filterEmojis('30').some((entry) => entry.name.includes('thirty'))).toBe(true)
     expect(editor.state.doc.textContent).toBe('at 12:30')
     destroy()
@@ -86,7 +86,7 @@ describe('D1 toolbar picker', () => {
   })
 })
 
-describe('D1 recents (Notion "Frequently used")', () => {
+describe('D1 recents ("Frequently used")', () => {
   it('records picks most-recent-first and dedupes', async () => {
     const { recentEmojis, recordEmoji } = await import('./recents')
     localStorage.clear()
@@ -110,7 +110,7 @@ describe('D1 recents (Notion "Frequently used")', () => {
 })
 
 describe('D1 full coverage (emojibase dataset)', () => {
-  it('covers every Notion category including flags', () => {
+  it('covers every standard category including flags', () => {
     const groups = new Set(getEmojis().map((entry) => entry.group))
     for (const group of [
       'Smileys & People',
