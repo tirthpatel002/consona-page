@@ -12,7 +12,7 @@ import {
 import { blockSelectionPlugin } from '../src/plugins/block-selection'
 import { commentsPlugin } from '../src/plugins/comments'
 import { createPersistencePlugin } from '../src/plugins/persistence'
-import { demoBlobs, demoDocumentId, demoSession } from './demoSession'
+import { demoBlobs, demoSessionFor, getCurrentPageId } from './demoSession'
 import { emojiPlugin } from '../src/plugins/emoji'
 import { blockActionsPlugin } from '../src/plugins/block-actions'
 import { jsonViewPlugin } from '../src/plugins/json-view'
@@ -38,12 +38,12 @@ export const pagePlugins: readonly PagePlugin[] = [
   listsPlugin,
   columnsPlugin,
   exportPlugin,
-  createMediaPlugin({ blobs: demoBlobs, pageId: () => demoDocumentId }),
+  createMediaPlugin({ blobs: demoBlobs, pageId: getCurrentPageId }),
   blockActionsPlugin,
   blockSelectionPlugin,
   emojiPlugin,
   commentsPlugin,
-  createPersistencePlugin(demoSession),
+  createPersistencePlugin(demoSessionFor),
   breadcrumbPlugin,
   calloutPlugin,
   equationPlugin,

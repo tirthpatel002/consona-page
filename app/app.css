@@ -108,3 +108,137 @@ body {
   border-top: 1px solid var(--page-border, currentColor);
   flex-wrap: wrap;
 }
+
+.app-shell {
+  display: flex;
+  align-items: flex-start;
+}
+.pages-pane {
+  width: 16rem;
+  flex: none;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--page-border, currentColor);
+  background: var(--page-bg);
+}
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
+.pages-toggle {
+  display: none;
+}
+.pages-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--page-fg);
+}
+.pages-sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pages-search,
+.pages-rename {
+  font: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--page-border, currentColor);
+  border-radius: var(--page-r-1);
+  background: var(--page-bg);
+  color: inherit;
+}
+.pages-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  justify-content: space-between;
+}
+.pages-open {
+  font: inherit;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0.3rem 0.25rem;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+}
+.pages-open[aria-current='page'] {
+  font-weight: 600;
+  background: var(--page-selection-surface);
+  border-radius: var(--page-r-2);
+}
+.pages-actions {
+  display: none;
+  gap: 0.25rem;
+}
+.pages-row:hover .pages-actions,
+.pages-row:focus-within .pages-actions {
+  display: inline-flex;
+}
+.pages-sidebar button {
+  font: inherit;
+  color: var(--page-muted-fg);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.pages-actions button,
+.pages-note button,
+.pages-new button {
+  text-decoration: underline;
+  padding: 0.1rem 0.25rem;
+}
+.pages-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--page-muted-fg);
+}
+.pages-excerpt,
+.pages-empty {
+  color: var(--page-muted-fg);
+  font-size: 0.78rem;
+}
+@media (max-width: 720px) {
+  .app-shell {
+    display: block;
+  }
+  .pages-toggle {
+    display: block;
+    font: inherit;
+    margin: 0.25rem 0.5rem;
+    background: none;
+    border: 1px solid var(--page-border, currentColor);
+    border-radius: var(--page-r-1);
+    color: inherit;
+    padding: 0.25rem 0.6rem;
+  }
+  .pages-pane {
+    display: none;
+    position: static;
+    width: auto;
+    max-height: 50vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--page-border, currentColor);
+  }
+  .pages-pane.is-open {
+    display: block;
+  }
+  .pages-actions {
+    display: inline-flex;
+  }
+}

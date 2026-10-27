@@ -35,16 +35,33 @@ const indexedDbStore: PageStore | null =
     ? null
     : createIndexedDbStore({ migrateLegacyLocalStorage: (id) => !hasPrimaryAuthority(id) })
 
-export const demoSession: PersistenceSession = { store: indexedDbStore ?? localStore, revision: undefined }
+const sessions = new Map<string, PersistenceSession>()
+/** Each page has its own session, so saving or loading one page never changes another page's revision. */
+export const demoSessionFor = (id: string): PersistenceSession => {
+  let found = sessions.get(id)
+  if (!found) {
+    found = { store: indexedDbStore ?? localStore, revision: undefined }
+    sessions.set(id, found)
+  }
+  return found
+}
+let currentPageId = ''
+/** The page the editor shows now; the file store files new uploads under it. */
+export const getCurrentPageId = (): string => currentPageId
+export const setCurrentPageId = (id: string): void => {
+  currentPageId = id
+}
 
 /**
  * Files and the page list live next to the page bodies. Without IndexedDB they are kept in memory only, so
  * they last for this tab session and the demo says nothing more about them than that.
  */
 export const demoBlobs: BlobStore = indexedDbStore ? createIndexedDbBlobStore() : createMemoryBlobStore()
+/** The page store every page body lives in. */
+export const demoPages: PageStore = indexedDbStore ?? localStore
 export const demoRegistry: PageListRegistry = createPageRegistry({
   storage: indexedDbStore ? createIndexedDbRegistryStorage() : createMemoryRegistryStorage(),
-  pages: demoSession.store,
+  pages: demoPages,
   blobs: demoBlobs,
 })
 export const demoFilesPersist = indexedDbStore !== null
@@ -150,7 +167,7 @@ export const prepareSidecar = (): Promise<void> => {
 
 export const loadDemoPage = async (documentId: string): Promise<LoadedPage> => {
   await prepareSidecar()
-  return loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSession })
+  return loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSessionFor(documentId) })
 }
 
 // The demo has one document and no account/workspace layer, so its identity is a UUID created

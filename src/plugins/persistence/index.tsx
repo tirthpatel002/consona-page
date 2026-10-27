@@ -73,7 +73,13 @@ const SAVE_FAILED = 'Could not save this page. Your latest edits are only in thi
  * they were loaded at, and never overwrite a newer copy: a stale write stops saving and reports a
  * conflict. Failures are reported through `storage.docPersistence.status`, not swallowed.
  */
-const createDocPersistenceExtension = (session: PersistenceSession) =>
+/** One session for the whole app, or a function that gives each document its own (needed once pages can be switched). */
+export type SessionSource = PersistenceSession | ((documentId: string) => PersistenceSession)
+const sessionFor = (source: SessionSource, documentId: string): PersistenceSession =>
+  typeof source === 'function' ? source(documentId) : source
+const docIdOf = (editor: Editor): string => editor.storage.documentIdentity?.documentId ?? 'default'
+
+const createDocPersistenceExtension = (source: SessionSource) =>
   Extension.create({
     name: 'docPersistence',
 
@@ -99,6 +105,7 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
       // No browser (server rendering, schema-only editors): nothing to persist to.
       if (typeof window === 'undefined') return
       const { editor } = this
+      const session = sessionFor(source, docIdOf(editor))
       const storage = editor.storage.docPersistence
       const listeners = (storage as unknown as { listeners: Set<() => void> }).listeners
       const set = (status: SaveStatus, message = '') => {
@@ -284,9 +291,9 @@ function ResetPopover({ editor, session }: { readonly editor: Editor; readonly s
   )
 }
 
-export const createPersistencePlugin = (session: PersistenceSession): PagePlugin => ({
+export const createPersistencePlugin = (source: SessionSource): PagePlugin => ({
   id: 'persistence',
-  extensions: [createDocPersistenceExtension(session)],
+  extensions: [createDocPersistenceExtension(source)],
   toolbarItems: [
     {
       id: 'persistence:reset',
@@ -296,7 +303,7 @@ export const createPersistencePlugin = (session: PersistenceSession): PagePlugin
       icon: 'history',
       placement: 'main',
       isEnabled: () => true,
-      popover: ({ editor }) => <ResetPopover editor={editor} session={session} />,
+      popover: ({ editor }) => <ResetPopover editor={editor} session={sessionFor(source, docIdOf(editor))} />,
     },
   ],
 })
