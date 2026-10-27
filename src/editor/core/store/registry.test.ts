@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createIndexedDbRegistryStorage,
   createIndexedDbStore,
+  createMemoryBlobStore,
   createMemoryRegistryStorage,
   createMemoryStore,
   createPageRegistry,
@@ -121,6 +122,22 @@ describe.each(makers)('%s page registry', (_name, make) => {
     expect(await pages.get(c.id)).toBeNull()
     expect((await pages.get(keep.id))?.doc).toEqual(doc('keep'))
     expect(await titles(registry, null)).toEqual(['Keep'])
+  })
+
+  it('delete forever also removes the files of every deleted page and keeps other pages files', async () => {
+    const { storage, pages } = setup()
+    const blobs = createMemoryBlobStore()
+    const registry = createPageRegistry({ storage, pages, blobs })
+    const a = await registry.create({ title: 'A' })
+    const c = await registry.create({ title: 'C', parentId: a.id })
+    const keep = await registry.create({ title: 'Keep' })
+    for (const id of [a.id, c.id, keep.id]) await blobs.put(id, new Blob(['x'], { type: 'image/png' }))
+    await registry.moveToTrash(a.id)
+    expect(await blobs.usage(a.id)).toBe(1) // trash keeps files
+    await registry.deleteForever(a.id)
+    expect(await blobs.usage(a.id)).toBe(0)
+    expect(await blobs.usage(c.id)).toBe(0)
+    expect(await blobs.usage(keep.id)).toBe(1)
   })
 
   it('a failed body delete keeps the records so the page is still in the trash', async () => {
