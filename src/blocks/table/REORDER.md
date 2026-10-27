@@ -16,7 +16,10 @@ ghost, drop line, auto-scroll), `tableMoveCommands.ts` (one-step commands), `tab
 - **Keyboard**: focus a handle (click it) and use Left/Right (column) or Up/Down (row). The toolbar's
   **Move ▾** menu has Column left/right and Row up/down for the column or row of the caret. Both keep focus.
 - **Touch and pen**: pointer events with `touch-action: none` on the handle; on devices without hover the
-  handles are always visible and larger.
+  handles are always visible and larger. A touch drag starts after 4px of movement on the handle (no
+  long-press); the handle is a thin bar, so scrolling the page by touching table text is unaffected.
+- **Tables without a header row**: the column handle sits on the first row's cells and moves the whole column;
+  every row is movable.
 - Locked (read-only) pages: handles are hidden and ignore presses.
 
 ## Data guarantees
@@ -29,6 +32,13 @@ ghost, drop line, auto-scroll), `tableMoveCommands.ts` (one-step commands), `tab
   `rowReorderBlocker` return the reason. Split the cells first.
 - Tables with fewer than two columns, or fewer than two body rows, show no handle of that kind.
 - The existing Sort command is unchanged.
+
+## Checked
+
+`reorderExport.test.ts`: after a column and a row move, Markdown, HTML and Word list the cells in the moved
+order, HTML re-imports to the same grid, and the editor HTML (what copy writes) keeps the moved order with the
+moved cells' block ids. Real Chrome: handles hidden until the table is hovered (hover media emulated), a
+select-all copy and paste of a moved table kept its order, ids stayed unique.
 
 ## Known limits
 

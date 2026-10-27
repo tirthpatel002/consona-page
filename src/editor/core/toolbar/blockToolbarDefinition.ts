@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/core'
 import type { Transaction } from '@tiptap/pm/state'
+import type { IconName } from '../ui/Icon'
 
 /** One command in a block toolbar (a button or a menu entry). */
 export interface BlockToolbarAction {
@@ -7,6 +8,11 @@ export interface BlockToolbarAction {
   readonly label: string
   readonly title: string
   readonly danger?: boolean
+  /**
+   * Optional Lucide outline icon. In a toolbar button the icon replaces the text (the label stays as the
+   * accessible name and the tooltip). Menu entries still show text only; the icon is ignored there for now.
+   */
+  readonly icon?: IconName
   /** Whether the command can run right now (disabled otherwise). */
   readonly can: (editor: Editor) => boolean
   readonly run: (editor: Editor) => void

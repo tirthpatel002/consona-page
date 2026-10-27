@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { allActions, type BlockToolbarAction, type BlockToolbarDefinition } from './blockToolbarDefinition'
 import { MenuButton } from './MenuButton'
+import { Icon } from '../ui/Icon'
 
 interface OpenMenu {
   readonly blockPos: number
@@ -128,12 +129,13 @@ export function BlockToolbar({
                 key={action.id}
                 data-action={action.id}
                 title={action.title}
+                aria-label={action.icon ? action.label : undefined}
                 aria-pressed={action.isActive ? (snapshot.active[action.id] ?? false) : undefined}
                 className={snapshot.active[action.id] ? 'is-active' : undefined}
                 disabled={!snapshot.enabled[action.id]}
                 onClick={() => run(action)}
               >
-                {action.label}
+                {action.icon ? <Icon name={action.icon} size={16} /> : action.label}
               </button>
             ))}
           </div>

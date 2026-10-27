@@ -2,6 +2,15 @@ import type { JsonObject } from '../json'
 import { createChangeFeed } from './changeFeed'
 import { asStorageError, FORMAT_VERSION, migrateStoredPage } from './format'
 import { assertRevision } from './memoryStore'
+import {
+  checkBlobLimits,
+  DEFAULT_BLOB_LIMITS,
+  type BlobStore,
+  type BlobStoreOptions,
+  type BlobSummary,
+  type StoredBlob,
+} from './blobStore'
+import type { PageRecord, RegistryStorage } from './registry'
 import type { PageStore, PageSummary, PutOptions, StoredPage } from './types'
 
 export interface IndexedDbStoreOptions {
@@ -17,7 +26,9 @@ export interface IndexedDbStoreOptions {
 
 const STORE = 'pages'
 /** Bump when the object layout changes and add a step to `upgrade`. */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 3
+const REGISTRY = 'registry'
+const BLOBS = 'blobs'
 
 const request = <T>(req: IDBRequest<T>): Promise<T> =>
   new Promise((resolve, reject) => {
@@ -34,6 +45,10 @@ const done = (tx: IDBTransaction): Promise<void> =>
 
 function upgrade(db: IDBDatabase, oldVersion: number): void {
   if (oldVersion < 1) db.createObjectStore(STORE, { keyPath: 'id' })
+  // 2: the page tree (parents, titles, order, trash). Bodies stay in `pages`.
+  if (oldVersion < 2) db.createObjectStore(REGISTRY, { keyPath: 'id' })
+  // 3: files beside the bodies (images, video, audio), looked up by page.
+  if (oldVersion < 3) db.createObjectStore(BLOBS, { keyPath: 'id' }).createIndex('pageId', 'pageId')
 }
 
 function readLegacy(id: string): JsonObject | null {
@@ -119,6 +134,122 @@ export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageS
       const db = await open()
       const all = (await request(db.transaction(STORE).objectStore(STORE).getAll())) as StoredPage[]
       return all.map(({ id, revision, updatedAt }): PageSummary => ({ id, revision, updatedAt }))
+    },
+  }
+}
+
+/** Page-tree records in the same database as the page bodies (object store `registry`). Each write is one transaction. */
+export function createIndexedDbRegistryStorage(options: { readonly name?: string } = {}): RegistryStorage {
+  const { name = 'page-store' } = options
+  let opened: Promise<IDBDatabase> | null = null
+  const open = (): Promise<IDBDatabase> => {
+    opened ??= new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(name, SCHEMA_VERSION)
+      req.onupgradeneeded = (event) => upgrade(req.result, event.oldVersion)
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => reject(req.error ?? new Error('Could not open the page database'))
+      req.onblocked = () => reject(new Error('The page database is blocked by another tab'))
+    })
+    opened.catch(() => {
+      opened = null
+    })
+    return opened
+  }
+  return {
+    async list() {
+      const db = await open()
+      return (await request(db.transaction(REGISTRY).objectStore(REGISTRY).getAll())) as PageRecord[]
+    },
+    async putMany(records) {
+      const db = await open()
+      const tx = db.transaction(REGISTRY, 'readwrite')
+      try {
+        for (const record of records) tx.objectStore(REGISTRY).put(record)
+        await done(tx)
+      } catch (error) {
+        throw asStorageError(error)
+      }
+    },
+    async removeMany(ids) {
+      const db = await open()
+      const tx = db.transaction(REGISTRY, 'readwrite')
+      for (const id of ids) tx.objectStore(REGISTRY).delete(id)
+      await done(tx)
+    },
+  }
+}
+
+/** Files in the same database as the pages (object store `blobs`, indexed by page). */
+export function createIndexedDbBlobStore(options: BlobStoreOptions & { readonly name?: string } = {}): BlobStore {
+  const { name = 'page-store' } = options
+  const limits = { ...DEFAULT_BLOB_LIMITS, ...options.limits }
+  const now = options.now ?? Date.now
+  let opened: Promise<IDBDatabase> | null = null
+  const open = (): Promise<IDBDatabase> => {
+    opened ??= new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(name, SCHEMA_VERSION)
+      req.onupgradeneeded = (event) => upgrade(req.result, event.oldVersion)
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => reject(req.error ?? new Error('Could not open the page database'))
+      req.onblocked = () => reject(new Error('The page database is blocked by another tab'))
+    })
+    opened.catch(() => {
+      opened = null
+    })
+    return opened
+  }
+  const forPage = async (pageId: string): Promise<StoredBlob[]> => {
+    const db = await open()
+    return (await request(
+      db.transaction(BLOBS).objectStore(BLOBS).index('pageId').getAll(IDBKeyRange.only(pageId)),
+    )) as StoredBlob[]
+  }
+  const summary = ({ id, pageId, type, size, createdAt }: StoredBlob): BlobSummary => ({
+    id,
+    pageId,
+    type,
+    size,
+    createdAt,
+  })
+  return {
+    limits,
+    async put(pageId, blob, putOptions) {
+      const id = putOptions?.id ?? 'f' + crypto.randomUUID().replace(/-/g, '').slice(0, 14)
+      const existing = (await forPage(pageId)).filter((b) => b.id !== id).reduce((sum, b) => sum + b.size, 0)
+      checkBlobLimits(limits, blob, existing)
+      const stored: StoredBlob = { id, pageId, blob, type: blob.type, size: blob.size, createdAt: now() }
+      const db = await open()
+      const tx = db.transaction(BLOBS, 'readwrite')
+      try {
+        tx.objectStore(BLOBS).put(stored)
+        await done(tx)
+      } catch (error) {
+        throw asStorageError(error)
+      }
+      return summary(stored)
+    },
+    async get(id) {
+      const db = await open()
+      return ((await request(db.transaction(BLOBS).objectStore(BLOBS).get(id))) as StoredBlob | undefined) ?? null
+    },
+    async remove(id) {
+      const db = await open()
+      const tx = db.transaction(BLOBS, 'readwrite')
+      tx.objectStore(BLOBS).delete(id)
+      await done(tx)
+    },
+    async removePage(pageId) {
+      const ids = (await forPage(pageId)).map((b) => b.id)
+      const db = await open()
+      const tx = db.transaction(BLOBS, 'readwrite')
+      for (const id of ids) tx.objectStore(BLOBS).delete(id)
+      await done(tx)
+    },
+    async list(pageId) {
+      return (await forPage(pageId)).map(summary)
+    },
+    async usage(pageId) {
+      return (await forPage(pageId)).reduce((sum, b) => sum + b.size, 0)
     },
   }
 }

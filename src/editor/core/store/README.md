@@ -24,3 +24,22 @@ Checked only with simulated failures (a stubbed quota error in jsdom and fake-in
 The demo editor uses it like this: with nothing unsaved in this tab, another tab's newer copy is shown ("Updated from another tab") and saving continues on top of it. With unsaved edits here, nothing is replaced and the conflict (download, explicit discard) appears at once instead of at the next failed save. A page removed in another tab is also a conflict, never a silent empty page. This tab's own saves, and saves from other editors sharing its session, are ignored. Undo after a live update can step back into content from before it; that is a normal edit and saves on top.
 
 Checked in real desktop Chrome with two tabs (idle tab updated, edit on top without conflict, other tab then updated, unsaved-edit conflict). The conflict case there used a direct write plus a hand-posted broadcast message rather than a second editor typing within the 500 ms save window. A tab in the background may receive the message late. Not checked: other browsers, Safari without BroadcastChannel, three or more tabs.
+
+## Page tree (registry)
+
+`createPageRegistry({ storage, pages })` keeps the tree: each `PageRecord` has `id`, `parentId`, `title`, `icon`, sibling `order`, `trashedAt` and `createdAt`. The body stays in the page store under the same id; a title change, move or trash never copies or rewrites a body. Parents and any future preview or link hold the id only.
+
+- `create`, `rename`, `move(id, parentId, index)`, `moveToTrash`, `restore` each are one atomic storage write and return `undo`, which writes the previous records back once. A page cannot move into itself or its own subpages (`cycle`), nor under a trashed page.
+- Trash hides the page and its whole subtree from `children`; only the page trashed directly shows in `trash()`. `restore` returns it under its old parent, or to the top level if that parent is gone or trashed, and puts it last among its siblings.
+- `deleteForever` needs the page in the trash, deletes every body in the subtree first and the records after, so a failed body delete leaves the page in the trash to retry. It cannot be undone.
+- IndexedDB schema is now version 2: an object store `registry` beside `pages`. A version 1 database upgrades in place and keeps its bodies (unit test, plus a real Chrome open of a hand-built version 1 database: it opened at version 2 with both stores). A second tab still running the older code keeps the old version open and can block the upgrade; the open then fails with the "blocked by another tab" error instead of opening.
+
+Not done: the demo does not use the registry yet (no sidebar, no nested-page block, no previews); changes to the registry are not announced to other tabs; undo is per call, not a history stack; titles are plain text, no uniqueness; ids of deleted pages are not tombstoned, so a stale link to a deleted page must be handled by the reader.
+
+## Files (blob store)
+
+`BlobStore` keeps binary files beside the page bodies so a page holds only a file id, not a data URL: `put(pageId, blob, { id? })`, `get`, `remove`, `removePage`, `list(pageId)`, `usage(pageId)`. Adapters: `createMemoryBlobStore`, `createIndexedDbBlobStore` (object store `blobs`, indexed by page; schema version 3).
+
+Limits (defaults, overridable): 25 MiB per file, 250 MiB per page, types `image/*`, `video/*`, `audio/*`, `application/pdf`. A refused file rejects with `BlobLimitError` (`too_large`, `page_limit`, `type_not_allowed`, with the limit) before anything is written; a full browser rejects with `StorageQuotaError`. Replacing an id counts only the new size. These numbers are placeholders chosen here, not user decisions, and the editor must show them to the user when it refuses a file.
+
+Not done: nothing uses the blob store yet (the media plugin still embeds data URLs; moving it over and migrating existing data URLs out of stored pages is the media worker's step, with the old copy kept until the move is verified); no orphan cleanup when a block holding a file id is deleted or a page version is dropped; `deleteForever` in the registry does not yet call `removePage`; blob changes are not announced to other tabs; object URLs for display must be created and revoked by the reader. jsdom's fake IndexedDB does not keep a Blob's `type` on the stored object, so the tests check the record's `type`; a real Chrome run checked that bytes, `instanceof Blob`, type and a refusal round-trip.
