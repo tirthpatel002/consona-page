@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import './ai-tools.css'
@@ -21,7 +21,7 @@ export function AiDialog({
   useEffect(() => {
     closeRef.current = close
   }, [close])
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previous = document.activeElement
     const root = ref.current
     root?.focus()
@@ -29,6 +29,15 @@ export function AiDialog({
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus()
     }
   }, [])
+  // Removing or disabling the focused action during a view transition sends focus to the body in Chrome.
+  // Repair it before paint, without moving a focus that is still valid inside the dialog.
+  useLayoutEffect(() => {
+    const root = ref.current
+    const active = document.activeElement
+    if (root && (!root.contains(active) || (active instanceof HTMLElement && active.matches(':disabled')))) {
+      root.focus()
+    }
+  })
   return createPortal(
     <div
       className="ai-dialog-backdrop"

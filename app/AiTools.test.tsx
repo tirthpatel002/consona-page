@@ -14,7 +14,10 @@ const button = (text: string) => [...document.querySelectorAll('button')].find((
 const click = async (text: string) => {
   const found = button(text)
   if (!found) throw new Error(`Missing ${text}`)
-  await act(async () => found.click())
+  await act(async () => {
+    found.focus()
+    found.click()
+  })
 }
 const mountApplied = async (undoResult: EditOutcome) => {
   const { editor, destroy } = createTestEditor({ plugins: [textPlugin()], content: '<p>hello</p>' })
@@ -39,7 +42,9 @@ const mountApplied = async (undoResult: EditOutcome) => {
   )
   await click('AI actions')
   await click('Prepare changes')
+  expect(document.querySelector('[role=dialog]')?.contains(document.activeElement)).toBe(true)
   await click('Accept')
+  expect(document.querySelector('[role=dialog]')?.contains(document.activeElement)).toBe(true)
   expect(document.body.textContent).toContain('Changes applied.')
   return {
     engine,
