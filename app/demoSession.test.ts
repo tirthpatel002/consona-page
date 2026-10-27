@@ -81,3 +81,14 @@ describe('loading with a primary store and a fallback', () => {
     expect(localStorage.getItem('page:store-authority:p')).toBeNull() // no marker, so no protection later
   })
 })
+
+describe('demo files and page list', () => {
+  it('are provided, and fall back to memory when IndexedDB is missing', async () => {
+    const { demoBlobs, demoRegistry, demoFilesPersist } = await import('./demoSession')
+    expect(demoFilesPersist).toBe(false) // jsdom has no IndexedDB
+    const { id } = await demoBlobs.put('p1', new Blob(['x'], { type: 'image/png' }))
+    expect((await demoBlobs.get(id))?.pageId).toBe('p1')
+    const page = await demoRegistry.create({ title: 'A' })
+    expect(page.id).toBeTruthy()
+  })
+})

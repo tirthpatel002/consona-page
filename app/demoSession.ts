@@ -1,5 +1,16 @@
 import type { JSONContent } from '@tiptap/core'
-import { createIndexedDbStore, createLocalStorageStore, type PageStore } from '../src/editor/core'
+import {
+  createIndexedDbBlobStore,
+  createIndexedDbRegistryStorage,
+  createMemoryBlobStore,
+  createMemoryRegistryStorage,
+  createPageRegistry,
+  createIndexedDbStore,
+  createLocalStorageStore,
+  type BlobStore,
+  type PageListRegistry,
+  type PageStore,
+} from '../src/editor/core'
 import type { PersistenceSession } from '../src/plugins/persistence'
 
 /**
@@ -23,6 +34,18 @@ const indexedDbStore: PageStore | null =
     : createIndexedDbStore({ migrateLegacyLocalStorage: (id) => !hasPrimaryAuthority(id) })
 
 export const demoSession: PersistenceSession = { store: indexedDbStore ?? localStore, revision: undefined }
+
+/**
+ * Files and the page list live next to the page bodies. Without IndexedDB they are kept in memory only, so
+ * they last for this tab session and the demo says nothing more about them than that.
+ */
+export const demoBlobs: BlobStore = indexedDbStore ? createIndexedDbBlobStore() : createMemoryBlobStore()
+export const demoRegistry: PageListRegistry = createPageRegistry({
+  storage: indexedDbStore ? createIndexedDbRegistryStorage() : createMemoryRegistryStorage(),
+  pages: demoSession.store,
+  blobs: demoBlobs,
+})
+export const demoFilesPersist = indexedDbStore !== null
 
 export interface LoadedPage {
   readonly content: JSONContent | null

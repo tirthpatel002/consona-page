@@ -29,6 +29,8 @@ Checked in real desktop Chrome with two tabs (idle tab updated, edit on top with
 
 `createPageRegistry({ storage, pages })` keeps the tree: each `PageRecord` has `id`, `parentId`, `title`, `icon`, sibling `order`, `trashedAt` and `createdAt`. The body stays in the page store under the same id; a title change, move or trash never copies or rewrites a body. Parents and any future preview or link hold the id only.
 
+From the core index the type is exported as `PageListRegistry` (the plugin composition type already uses `PageRegistry`). The demo (`app/demoSession.ts`) provides `demoBlobs` and `demoRegistry` on IndexedDB, or in memory when IndexedDB is missing; nothing in the UI uses them yet.
+
 - `create`, `rename`, `move(id, parentId, index)`, `moveToTrash`, `restore` each are one atomic storage write and return `undo`, which writes the previous records back once. A page cannot move into itself or its own subpages (`cycle`), nor under a trashed page.
 - Trash hides the page and its whole subtree from `children`; only the page trashed directly shows in `trash()`. `restore` returns it under its old parent, or to the top level if that parent is gone or trashed, and puts it last among its siblings.
 - `deleteForever` needs the page in the trash, deletes every body in the subtree first and the records after, so a failed body delete leaves the page in the trash to retry. It cannot be undone.
