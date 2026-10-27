@@ -285,3 +285,113 @@
 .page-block-toolbar .page-block-menu__popup button.is-danger:hover:not(:disabled) {
   background: var(--page-danger-subtle, var(--page-muted));
 }
+
+/*
+ * Row / column reorder handles (see reorderHandles.ts). Thin neutral bars on the first row's top edge
+ * (column) and on each body row's left edge (row). Only neutral tokens: no accent colour.
+ */
+.native-table__scroll {
+  position: relative;
+}
+.native-table__reorder {
+  position: absolute;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--page-fg) 28%, transparent);
+  cursor: grab;
+  opacity: 0;
+  transition:
+    opacity 0.12s,
+    background-color 0.12s;
+  touch-action: none;
+  user-select: none;
+}
+.native-table__reorder::before {
+  /* larger invisible hit area around the thin bar */
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+.native-table__reorder--column {
+  top: 1px;
+  left: 50%;
+  width: 28px;
+  height: 4px;
+  transform: translateX(-50%);
+}
+.native-table__reorder--row {
+  left: 1px;
+  top: 50%;
+  width: 4px;
+  height: 28px;
+  transform: translateY(-50%);
+}
+.native-table:hover .native-table__reorder,
+.native-table:focus-within .native-table__reorder,
+.native-table__reorder:focus-visible {
+  opacity: 1;
+}
+.native-table__reorder:hover,
+.native-table__reorder:focus-visible {
+  background: var(--page-fg);
+}
+.native-table__reorder:focus-visible {
+  outline: 2px solid var(--page-fg);
+  outline-offset: 2px;
+}
+.native-table__reorder:active,
+.native-table.is-reordering .native-table__reorder {
+  cursor: grabbing;
+}
+@media (hover: none) {
+  /* touch: always visible and a bit thicker */
+  .native-table__reorder {
+    opacity: 1;
+  }
+  .native-table__reorder--column {
+    height: 5px;
+    width: 36px;
+  }
+  .native-table__reorder--row {
+    width: 5px;
+    height: 36px;
+  }
+  .native-table__reorder::before {
+    inset: -12px;
+  }
+}
+/* Locked (read-only) pages: no handles */
+.ProseMirror[contenteditable='false'] .native-table__reorder {
+  display: none;
+}
+.native-table.is-reordering {
+  user-select: none;
+}
+.native-table__reorder-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.native-table__reorder-ghost {
+  position: absolute;
+  box-sizing: border-box;
+  background: color-mix(in oklab, var(--page-fg) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--page-fg) 45%, transparent);
+  border-radius: var(--nt-radius-atom);
+}
+.native-table__reorder-line {
+  position: absolute;
+  background: var(--page-fg);
+  border-radius: 1px;
+}
+.native-table__reorder-line[hidden] {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .native-table__reorder {
+    transition: none;
+  }
+}

@@ -60,6 +60,21 @@ export const tableMenus: readonly TableMenu[] = [
     ],
   },
   {
+    id: 'move',
+    label: 'Move',
+    title: 'Move the column or row',
+    sections: [
+      [
+        action('move-col-left', 'Column left', 'Move column left', (c) => c.moveTableColumnBy(-1)),
+        action('move-col-right', 'Column right', 'Move column right', (c) => c.moveTableColumnBy(1)),
+      ],
+      [
+        action('move-row-up', 'Row up', 'Move row up', (c) => c.moveTableRowBy(-1)),
+        action('move-row-down', 'Row down', 'Move row down', (c) => c.moveTableRowBy(1)),
+      ],
+    ],
+  },
+  {
     id: 'sort',
     label: 'Sort',
     title: 'Sort rows by this column',

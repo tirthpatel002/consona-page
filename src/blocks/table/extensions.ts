@@ -5,10 +5,18 @@ import { headerOnlyResizePlugin } from './headerOnlyResize'
 import { headerSortPlugin } from './headerSort'
 import { NativeTableView } from './NativeTableView'
 import type { SortDirection } from './sortRows'
+import { reorderHandlesPlugin } from './reorderHandles'
 import { sortTableByColumn } from './sortTable'
+import { moveColumnBy, moveRowBy } from './tableMoveCommands'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
+    tableMove: {
+      /** Moves the selected column one step left (-1) or right (1); one undo step. */
+      moveTableColumnBy: (delta: -1 | 1) => ReturnType
+      /** Moves the selected body row one step up (-1) or down (1); header rows stay on top. */
+      moveTableRowBy: (delta: -1 | 1) => ReturnType
+    }
     tableSort: {
       /** Reorders the body rows of the current table by the selected column (undoable). */
       sortTableByColumn: (direction: SortDirection) => ReturnType
@@ -33,6 +41,23 @@ const NativeTable = Table.extend({
   // Keep real NodeSelections of the table (gutter handle click / drag); otherwise they become CellSelections.
   allowTableNodeSelection: true,
   HTMLAttributes: { class: 'native-table__table' },
+})
+
+const TableMove = Extension.create({
+  name: 'tableMove',
+  addProseMirrorPlugins: () => [reorderHandlesPlugin()],
+  addCommands() {
+    return {
+      moveTableColumnBy:
+        (delta) =>
+        ({ state, dispatch }) =>
+          moveColumnBy(delta)(state, dispatch),
+      moveTableRowBy:
+        (delta) =>
+        ({ state, dispatch }) =>
+          moveRowBy(delta)(state, dispatch),
+    }
+  },
 })
 
 const TableSort = Extension.create({
@@ -77,4 +102,4 @@ const TableDragGuard = Extension.create({
   },
 })
 
-export const tableExtensions = [NativeTable, TableRow, TableHeader, TableCell, TableSort, TableDragGuard]
+export const tableExtensions = [NativeTable, TableRow, TableHeader, TableCell, TableSort, TableMove, TableDragGuard]

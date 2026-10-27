@@ -13,10 +13,17 @@ describe('cellMergeAction', () => {
 })
 
 describe('toolbar layout', () => {
-  it('groups actions into Add / Remove / Sort menus', () => {
+  it('groups actions into Add / Remove / Move / Sort menus', () => {
     expect(tableMenus.map((m) => [m.label, m.sections.map((s) => s.map((a) => a.label))])).toEqual([
       ['Add', [['Row above', 'Row below', 'Column left', 'Column right']]],
       ['Remove', [['Row', 'Column'], ['Delete table']]],
+      [
+        'Move',
+        [
+          ['Column left', 'Column right'],
+          ['Row up', 'Row down'],
+        ],
+      ],
       ['Sort', [['Ascending (A→Z)', 'Descending (Z→A)']]],
     ])
   })
