@@ -153,8 +153,14 @@ export function AiTools({
                 {state.proposal.steps.map((step, index) => (
                   <li key={index}>
                     <small>
-                      {step.op} · {step.id}
+                      {step.op === 'replaceMarkdown' ? 'Replace chosen text' : 'Add text after chosen block'}
                     </small>
+                    <details>
+                      <summary>Technical details</summary>
+                      <small>
+                        {step.op} · {step.id}
+                      </small>
+                    </details>
                     <pre>{'text' in step ? step.text : JSON.stringify(step)}</pre>
                   </li>
                 ))}
