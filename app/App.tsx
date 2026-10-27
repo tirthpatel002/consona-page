@@ -108,7 +108,7 @@ function Page({
           <AiTools editor={page.editor} pageId={documentId} engine={demoPagesEngine} settings={demoSettings} />
         </div>
       )}
-      {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
+      {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} settingsFailed={page.lockSaveFailed} />}
       <SidecarStatus errorHost={errorHost} />
       {page.lockSaveFailed &&
         inStack(

@@ -8,7 +8,16 @@ const LABELS = { idle: '', saving: 'Saving…', saved: 'Saved on this device' } 
 export const inStack = (host: HTMLElement | null, node: ReactNode): ReactNode =>
   host ? createPortal(node, host) : node
 
-export function SaveStatus({ editor, errorHost }: { readonly editor: Editor; readonly errorHost: HTMLElement | null }) {
+export function SaveStatus({
+  editor,
+  errorHost,
+  settingsFailed = false,
+}: {
+  readonly editor: Editor
+  readonly errorHost: HTMLElement | null
+  /** The page's lock could not be saved, so a plain "Saved" would overstate what is stored. */
+  readonly settingsFailed?: boolean
+}) {
   const storage = editor.storage.docPersistence
   const status = useSyncExternalStore(storage.subscribe, () => storage.status)
   const message = useSyncExternalStore(storage.subscribe, () => storage.message)
@@ -27,7 +36,8 @@ export function SaveStatus({ editor, errorHost }: { readonly editor: Editor; rea
   if (status === 'conflict') return inStack(errorHost, <Conflict editor={editor} message={message} />)
   return (
     <div className="save-status" role="status" aria-live="polite">
-      {message || LABELS[status]}
+      {message ||
+        (status === 'saved' && settingsFailed ? 'Text saved on this device. Page lock not saved.' : LABELS[status])}
     </div>
   )
 }
