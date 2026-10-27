@@ -33,7 +33,29 @@ describe('block selection ring', () => {
       .map((rule) => ({ file: relative(SRC, file), selector: rule.selector })),
   )
 
-  it('is drawn by exactly one rule, in core editor.css', () => {
-    expect(painting).toEqual([{ file: CORE_CSS, selector: '.ProseMirror .ProseMirror-selectednode' }])
+  /**
+   * Plain nodes are painted by core editor.css; blocks that opt into feedback variants delegate to
+   * blockFeedback.css. The core rule is guarded with :not() so the two never paint the same block, which
+   * was confirmed in a browser: each node-selected block shows exactly one selection tint.
+   */
+  it('is painted by the core rule for plain nodes and the inset rule for inset blocks, nothing else', () => {
+    expect(painting).toEqual([
+      {
+        file: 'editor/core/styles/blockFeedback.css',
+        selector: expect.stringContaining("[data-block-feedback='inset']"),
+      },
+      {
+        file: CORE_CSS,
+        selector:
+          ".ProseMirror .ProseMirror-selectednode:not(:has(> .page-block)):not(.page-block):not([data-block-feedback='shell'])",
+      },
+    ])
+  })
+
+  it('keeps the core rule away from blocks that delegate their feedback', () => {
+    const core = painting.find((rule) => rule.file === CORE_CSS)?.selector ?? ''
+    expect(core).toContain(':not(.page-block)')
+    expect(core).toContain(":not([data-block-feedback='shell'])")
+    expect(core).toContain(':not(:has(> .page-block))')
   })
 })
