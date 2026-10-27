@@ -9,6 +9,7 @@ import {
   type JsonObject,
   type PageStore,
 } from '../../editor/core'
+import { documentIdentityExtension } from '../../editor/core/identity'
 import { createPersistencePlugin, type PersistenceSession } from '.'
 
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] })
@@ -195,5 +196,43 @@ describe('live updates from another tab', () => {
     expect(editor.storage.docPersistence.message).toBe('')
     expect(text(editor)).toBe('start a')
     destroy()
+  })
+
+  it('resolves the session per document, so two pages never share a revision or a store key', async () => {
+    const store = createMemoryStore()
+    const sessions = new Map<string, PersistenceSession>()
+    const source = (id: string): PersistenceSession => {
+      const made = sessions.get(id) ?? { store, revision: null }
+      sessions.set(id, made)
+      return made
+    }
+    const open = (id: string) => {
+      const plugin = createPersistencePlugin(source)
+      return createTestEditor({
+        plugins: [
+          {
+            id: 'p',
+            extensions: [
+              StarterKit,
+              documentIdentityExtension.configure({ documentId: id }),
+              ...(plugin.extensions ?? []),
+            ],
+          },
+        ],
+        content: '<p>start</p>',
+      })
+    }
+    const a = open('page-a')
+    const b = open('page-b')
+    a.editor.commands.insertContentAt(a.editor.state.doc.content.size - 1, ' alpha')
+    b.editor.commands.insertContentAt(b.editor.state.doc.content.size - 1, ' beta')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(sessions.get('page-a')?.revision).toBe(1)
+    expect(sessions.get('page-b')?.revision).toBe(1)
+    expect(JSON.stringify((await store.get('page-a'))?.doc)).toContain('alpha')
+    expect(JSON.stringify((await store.get('page-a'))?.doc)).not.toContain('beta')
+    expect(JSON.stringify((await store.get('page-b'))?.doc)).toContain('beta')
+    a.destroy()
+    b.destroy()
   })
 })

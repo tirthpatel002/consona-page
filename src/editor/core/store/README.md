@@ -89,3 +89,16 @@ page into the file store and returns the new document, how many were moved, and 
 reason (`limit`, `type`, `unreadable`, `store_failed`). It does not write the page, never drops a block, and is safe
 to run twice. The demo does not call it yet: a host decides when to run it and saves the result itself, so a page is
 never rewritten silently. Not checked in a browser.
+
+## Pages in the demo app
+
+The demo shell lists pages from the registry: a tree, New page, Add subpage, Rename, Move to trash (with Undo), a Trash list with Restore and Delete forever, and title/text search. Each page gets its own persistence session (`createPersistencePlugin` accepts a session or a function from document id to session), so revisions and saved copies never mix between pages.
+
+Not built yet:
+
+- The clipped rendered preview of a nested page inside its parent.
+- Announcing registry changes (create, rename, trash) to other open tabs.
+- Icon buttons in the sidebar (they are text buttons).
+- Page order within a level is creation order only; there is no drag to reorder pages.
+- Checked in desktop Chrome and a 390 px viewport only.
+
