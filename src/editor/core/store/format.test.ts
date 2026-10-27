@@ -64,7 +64,7 @@ describe('stored page format', () => {
     await expect(store.get('p')).rejects.toBeInstanceOf(UnsupportedFormatError)
     await expect(store.put('p', doc('clobber'))).rejects.toBeInstanceOf(UnsupportedFormatError)
     const raw = await new Promise<{ doc: unknown }>((resolve) => {
-      const open = indexedDB.open('fmt-new', 1)
+      const open = indexedDB.open('fmt-new')
       open.onsuccess = () => {
         const get = open.result.transaction('pages').objectStore('pages').get('p')
         get.onsuccess = () => resolve(get.result as { doc: unknown })
