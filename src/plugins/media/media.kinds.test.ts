@@ -349,3 +349,16 @@ describe('reading files', () => {
     ).toMatchObject({ ok: false, cancelled: true })
   })
 })
+
+describe('comment thread survives edits', () => {
+  it('keeps commentThread across alt, layout and source changes', () => {
+    const { editor } = make()
+    insertMedia.run(editor, 'image', 'data:image/png;base64,AAAA')
+    const pos = mediaNode(editor).pos
+    editor.view.dispatch(editor.state.tr.setNodeAttribute(pos, 'commentThread', 'thread-1'))
+    setMediaDetails.run(editor, pos, { alt: 'a cat' } as never)
+    setMediaLayout.run(editor, pos, { width: 300 } as never)
+    expect(mediaNode(editor).attrs.commentThread).toBe('thread-1')
+    expect(toHtml(editor.getJSON() as never)).toContain('data-comment-thread="thread-1"')
+  })
+})
