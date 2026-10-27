@@ -1,4 +1,5 @@
 import { useState, type MouseEvent } from 'react'
+import { isSafeUrl } from '../../editor/core'
 import { EditableText } from '../callout/EditableText'
 import { joinLabels, splitLabels, type BreadcrumbItem } from './model'
 
@@ -79,7 +80,7 @@ function BreadcrumbTrail({
                   ›
                 </span>
               )}
-              {last || !item.href ? (
+              {last || !item.href || !isSafeUrl(item.href) ? (
                 <span className="page-breadcrumb__label" aria-current={last ? 'page' : undefined}>
                   {item.label}
                 </span>

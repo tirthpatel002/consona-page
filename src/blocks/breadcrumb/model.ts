@@ -1,9 +1,10 @@
 import * as z from 'zod/mini'
+import { isSafeUrl } from '../../editor/core'
 
 /** One breadcrumb item: a label, optionally linked. The last item is the current page (never a link). */
 export const breadcrumbItem = z.object({
   label: z.string().check(z.minLength(1, 'Breadcrumb labels are required')),
-  href: z.optional(z.string()),
+  href: z.optional(z.string().check(z.refine(isSafeUrl, 'Links must use http, https, mailto or tel'))),
 })
 
 /** Persisted props. Unknown keys are stripped; an empty list renders a placeholder. */

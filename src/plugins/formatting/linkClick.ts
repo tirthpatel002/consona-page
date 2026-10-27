@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { isSafeUrl } from '../../editor/core'
 
 /**
  * Clicking a link opens its destination in a new tab (D4) - in editing and in read-only/locked mode alike.
@@ -20,6 +21,7 @@ export const linkClickExtension = Extension.create({
             const href = target.getAttribute('href')
             if (!href) return false
             event.preventDefault()
+            if (!isSafeUrl(href)) return true
             window.open(href, '_blank', 'noopener,noreferrer')
             return true
           },

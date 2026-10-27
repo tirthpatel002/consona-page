@@ -1,3 +1,4 @@
+import { isSafeUrl } from '../../editor/core'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
 
 /**
@@ -142,9 +143,11 @@ export function blockToMarkdown(node: DocNode): string[] {
       return calloutLines(node)
     case 'media': {
       const kind = stringAttr(node, 'kind') ?? 'image'
-      const src = stringAttr(node, 'src') ?? ''
+      const rawSrc = stringAttr(node, 'src') ?? ''
+      const src = isSafeUrl(rawSrc) ? rawSrc : ''
       const caption = textOf({ type: 'media', content: node.content })
-      if (kind === 'video') return [`<video src="${src}">${escapeText(caption)}</video>`]
+      if (kind === 'video')
+        return [`<video src="${src.replace(/["<>&]/g, (c) => encodeURIComponent(c))}">${escapeText(caption)}</video>`]
       return [`![${caption.replace(/[[\]]/g, '')}](${src})`]
     }
     case 'hardBreak':

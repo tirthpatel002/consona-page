@@ -12,6 +12,10 @@ route, plus a toolbar menu ("Export") with file download and Markdown/HTML impor
 
 No new npm dependencies.
 
+## Pasted content
+
+Every paste, including a copy from this editor, is cleaned at the DOM level before the editor reads it: script, iframe, svg and similar elements, `on*` attributes, inline styles that load resources, and URLs outside the allowlist (`isSafeUrl`) are removed. Editor data attributes are kept. Media sources, link targets and breadcrumb links are also checked by their schemas, so JSON entered another way is not rendered with an unsafe URL. Not covered: the contents of other blocks' `data-props` beyond their own schema validation, and typing/input rules.
+
 HTML export writes text colour and highlight into inline styles only when the value is a plain colour (hex, a colour name, or `rgb()`/`hsl()`). Any other value is left out, so a stored value cannot add attributes or markup to the exported file.
 
 ## Lossy conversions (all tested)

@@ -4,7 +4,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { Slice } from '@tiptap/pm/model'
 import { fromHtml } from './html'
 import { fromMarkdown, toMarkdown } from './markdown'
-import { sanitizeImported } from './safeUrls'
+import { sanitizeImported, sanitizePastedHtml } from './safeUrls'
 import type { Doc, DocNode } from './types'
 import { insertConverted } from './operations'
 
@@ -39,6 +39,7 @@ export const PasteConversion = Extension.create({
       new Plugin({
         key: new PluginKey('pagePasteConversion'),
         props: {
+          transformPastedHTML: (html) => sanitizePastedHtml(html),
           handlePaste: (_view, event) => {
             const data = event.clipboardData
             if (!data || data.files.length > 0) return false
