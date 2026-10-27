@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowUp, ArrowDown, CornerDownRight, FilePlus, Pencil, Trash2, Plus, X } from 'lucide-react'
+import './PagesSidebar.css'
 import { searchPages, type PageRecord, type PageSearchResult } from '../src/editor/core'
 import { demoPages, demoRegistry } from './demoSession'
 
@@ -24,6 +26,9 @@ interface Props {
 
 /** The page tree: open, add, rename, move to trash and restore, plus search across pages. */
 export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onChanged }: Props) {
+  const renameActive = useRef<string | null>(null)
+  const [moving, setMoving] = useState<string | null>(null)
+  const [destination, setDestination] = useState('')
   const [tree, setTree] = useState<readonly TreeNode[]>([])
   const [trashed, setTrashed] = useState<readonly PageRecord[]>([])
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -86,6 +91,8 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
 
   const finishRename = (id: string) =>
     run(async () => {
+      if (renameActive.current !== id) return
+      renameActive.current = null
       setRenaming(null)
       const title = draft.trim()
       if (title) await demoRegistry.rename(id, title)
@@ -104,6 +111,32 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
       if (record.id === currentId) onCurrentTrashed(record.parentId)
     })
 
+  const flatten = (nodes: readonly TreeNode[]): PageRecord[] => nodes.flatMap((n) => [n.record, ...flatten(n.children)])
+  const records = flatten(tree)
+  const descendants = (id: string): Set<string> => {
+    const blocked = new Set([id])
+    for (let i = 0; i < records.length; i += 1)
+      for (const r of records) if (r.parentId && blocked.has(r.parentId)) blocked.add(r.id)
+    return blocked
+  }
+  const move = (record: PageRecord, parentId: string | null, index?: number) =>
+    run(async () => {
+      const done = await demoRegistry.move(record.id, parentId, index)
+      setMoving(null)
+      setNote({
+        text: `Moved "${record.title}".`,
+        undo: async () => {
+          await done.undo()
+          onChanged()
+        },
+      })
+    })
+  const reorder = (record: PageRecord, direction: -1 | 1) => {
+    const siblings = records.filter((r) => r.parentId === record.parentId)
+    const index = siblings.findIndex((r) => r.id === record.id) + direction
+    if (index >= 0 && index < siblings.length) void move(record, record.parentId, index)
+  }
+
   const row = (node: TreeNode, depth: number) => (
     <li key={node.record.id}>
       <div className="pages-row" style={{ paddingLeft: `${String(0.5 + depth * 0.9)}rem` }}>
@@ -117,7 +150,10 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
             onBlur={() => void finishRename(node.record.id)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') void finishRename(node.record.id)
-              if (event.key === 'Escape') setRenaming(null)
+              if (event.key === 'Escape') {
+                renameActive.current = null
+                setRenaming(null)
+              }
             }}
           />
         ) : (
@@ -136,27 +172,86 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
             aria-label={`Add a page inside ${node.record.title}`}
             onClick={() => void add(node.record.id)}
           >
-            Add
+            <FilePlus size={15} aria-hidden="true" />
           </button>
           <button
             type="button"
             aria-label={`Rename ${node.record.title}`}
             onClick={() => {
+              renameActive.current = node.record.id
               setDraft(node.record.title)
               setRenaming(node.record.id)
             }}
           >
-            Rename
+            <Pencil size={15} aria-hidden="true" />
           </button>
           <button
             type="button"
             aria-label={`Move ${node.record.title} to trash`}
             onClick={() => void trash(node.record)}
           >
-            Trash
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Move ${node.record.title}`}
+            onClick={() => {
+              setMoving(node.record.id)
+              setDestination(node.record.parentId ?? '')
+            }}
+          >
+            <CornerDownRight size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Move ${node.record.title} up`}
+            disabled={records.filter((r) => r.parentId === node.record.parentId)[0]?.id === node.record.id}
+            onClick={() => reorder(node.record, -1)}
+          >
+            <ArrowUp size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Move ${node.record.title} down`}
+            disabled={records.filter((r) => r.parentId === node.record.parentId).at(-1)?.id === node.record.id}
+            onClick={() => reorder(node.record, 1)}
+          >
+            <ArrowDown size={15} aria-hidden="true" />
           </button>
         </span>
       </div>
+      {moving === node.record.id && (
+        <form
+          className="pages-move"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void move(node.record, destination || null)
+          }}
+        >
+          <label>
+            Move to
+            <select
+              aria-label="Parent page"
+              autoFocus
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+            >
+              <option value="">Top level</option>
+              {records
+                .filter((r) => !descendants(node.record.id).has(r.id))
+                .map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title || 'Untitled'}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <button type="submit">Move</button>
+          <button type="button" aria-label="Cancel move" onClick={() => setMoving(null)}>
+            <X size={15} />
+          </button>
+        </form>
+      )}
       {node.children.length > 0 && <ul>{node.children.map((child) => row(child, depth + 1))}</ul>}
     </li>
   )
@@ -169,7 +264,10 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
         placeholder="Search pages"
         aria-label="Search pages"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setResults(null)
+          setQuery(event.target.value)
+        }}
       />
       {note && (
         <div className="pages-note" role="status">
@@ -180,7 +278,7 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
               onClick={() => {
                 const undo = note.undo
                 setNote(null)
-                void undo?.()
+                if (undo) void run(undo)
               }}
             >
               Undo
@@ -199,26 +297,32 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
           </button>
         </div>
       )}
-      {query.trim() !== '' && results ? (
-        <ul className="pages-results" aria-label="Search results">
-          {results.length === 0 && <li className="pages-empty">No pages match.</li>}
-          {results.map((result) => (
-            <li key={result.pageId}>
-              <button type="button" className="pages-open" onClick={() => onOpen(result.pageId)}>
-                <strong>{result.title || 'Untitled'}</strong>
-                {result.path.length > 0 && <small> in {result.path.join(' / ')}</small>}
-                {result.hits[0] && <small className="pages-excerpt">{result.hits[0].excerpt}</small>}
-              </button>
-            </li>
-          ))}
-          {truncated && <li className="pages-empty">Only part of your pages was searched.</li>}
-        </ul>
+      {query.trim() !== '' ? (
+        results ? (
+          <ul className="pages-results" aria-label="Search results">
+            {results.length === 0 && <li className="pages-empty">No pages match.</li>}
+            {results.map((result) => (
+              <li key={result.pageId}>
+                <button type="button" className="pages-open" onClick={() => onOpen(result.pageId)}>
+                  <strong>{result.title || 'Untitled'}</strong>
+                  {result.path.length > 0 && <small> in {result.path.join(' / ')}</small>}
+                  {result.hits[0] && <small className="pages-excerpt">{result.hits[0].excerpt}</small>}
+                </button>
+              </li>
+            ))}
+            {truncated && <li className="pages-empty">Only part of your pages was searched.</li>}
+          </ul>
+        ) : (
+          <p className="pages-empty" role="status">
+            Searching pages…
+          </p>
+        )
       ) : (
         <>
           <ul className="pages-tree">{tree.map((node) => row(node, 0))}</ul>
           <div className="pages-new">
             <button type="button" onClick={() => void add(null)}>
-              New page
+              <Plus size={16} aria-hidden="true" /> New page
             </button>
           </div>
           {trashed.length > 0 && (
