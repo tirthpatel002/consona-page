@@ -54,3 +54,12 @@ jpeg, gif, webp, avif; video: mp4, webm, ogg; audio: mpeg, mp3, wav, ogg, webm, 
 text, csv, zip). No wildcards, no SVG or HTML. A data URL of one kind is refused for another, and audio or file
 data URLs are refused by `isSafeUrl`, so they cannot become links or images. Embeds use a host allowlist in the
 media plugin. Block specs can set `bubbleless` to keep the text bubble toolbar off their node selection.
+
+## Stored files in exports
+
+Exports first call `prepareForExport` (src/plugins/export/host.ts). A host sets `setExportHost({ prepare, onOmitted })`;
+the demo passes the media plugin's `inlineStoredFiles` (stored files become data URLs when allowed and within 8 MB)
+and shows a notice listing how many files were left out and why, while the exported file carries its own
+"not included" note. Without a host nothing changes. If preparing fails the original document is exported and the
+notice says so. Checked in desktop Chrome for one stored PNG in HTML export only; the omission notice, Markdown,
+Word and print paths with stored files were not browser-checked.

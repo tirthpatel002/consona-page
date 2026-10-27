@@ -20,9 +20,16 @@ import { propsEditorPlugin } from '../src/plugins/props-editor'
 import { formattingPlugin } from '../src/plugins/formatting'
 import { columnsPlugin } from '../src/plugins/columns'
 import { exportPlugin } from '../src/plugins/export'
-import { createMediaPlugin } from '../src/plugins/media'
+import { createMediaPlugin, inlineStoredFiles } from '../src/plugins/media'
+import { setExportHost } from '../src/plugins/export/host'
+import { showExportOmitted } from './exportNotice'
 import { listsPlugin } from '../src/plugins/lists'
 import { textPlugin } from '../src/plugins/text'
+
+setExportHost({
+  prepare: (doc) => inlineStoredFiles(doc, demoBlobs),
+  onOmitted: showExportOmitted,
+})
 
 /** The page's plugin list. Order = toolbar / slash-menu order. Add new plugins here. */
 export const pagePlugins: readonly PagePlugin[] = [

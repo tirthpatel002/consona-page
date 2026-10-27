@@ -1,6 +1,7 @@
 import type { Editor, JSONContent } from '@tiptap/core'
 import { Menu, type MenuEntry, type PagePlugin, type ToolbarItem } from '../../editor/core'
 import { toDocx } from './docx'
+import { prepareForExport } from './host'
 import { downloadBlob, openPrintWindow } from './download'
 import { fromHtml, toHtml } from './html'
 import { fromMarkdown, toMarkdown } from './markdown'
@@ -24,8 +25,8 @@ function docOf(editor: Editor): Doc {
   return editor.getJSON() as Doc
 }
 
-function exportAs(editor: Editor, format: 'markdown' | 'html' | 'docx' | 'pdf'): void {
-  const doc = docOf(editor)
+async function exportAs(editor: Editor, format: 'markdown' | 'html' | 'docx' | 'pdf'): Promise<void> {
+  const doc = await prepareForExport(docOf(editor))
   const title = pageTitle(doc)
   if (format === 'markdown') {
     downloadBlob(`${title}.md`, new Blob([toMarkdown(doc)], { type: 'text/markdown' }))
@@ -82,7 +83,7 @@ const toolbarItems: readonly ToolbarItem[] = [
           id: 'markdown',
           label: 'Markdown (.md)',
           onSelect: () => {
-            exportAs(editor, 'markdown')
+            void exportAs(editor, 'markdown')
             close()
           },
         },
@@ -90,7 +91,7 @@ const toolbarItems: readonly ToolbarItem[] = [
           id: 'html',
           label: 'HTML (.html)',
           onSelect: () => {
-            exportAs(editor, 'html')
+            void exportAs(editor, 'html')
             close()
           },
         },
@@ -98,7 +99,7 @@ const toolbarItems: readonly ToolbarItem[] = [
           id: 'docx',
           label: 'Word (.docx)',
           onSelect: () => {
-            exportAs(editor, 'docx')
+            void exportAs(editor, 'docx')
             close()
           },
         },
@@ -106,7 +107,7 @@ const toolbarItems: readonly ToolbarItem[] = [
           id: 'pdf',
           label: 'PDF (print dialog)',
           onSelect: () => {
-            exportAs(editor, 'pdf')
+            void exportAs(editor, 'pdf')
             close()
           },
         },
@@ -114,7 +115,7 @@ const toolbarItems: readonly ToolbarItem[] = [
           id: 'copy-markdown',
           label: 'Copy page as Markdown',
           onSelect: () => {
-            void copyText(toMarkdown(docOf(editor)))
+            void prepareForExport(docOf(editor)).then((doc) => copyText(toMarkdown(doc)))
             close()
           },
         },
@@ -122,7 +123,7 @@ const toolbarItems: readonly ToolbarItem[] = [
           id: 'copy-html',
           label: 'Copy page as HTML',
           onSelect: () => {
-            void copyText(toHtml(docOf(editor), { title: pageTitle(docOf(editor)) }))
+            void prepareForExport(docOf(editor)).then((doc) => copyText(toHtml(doc, { title: pageTitle(doc) })))
             close()
           },
         },

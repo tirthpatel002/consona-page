@@ -91,3 +91,4 @@ export function createMediaPlugin(host: MediaHost = {}): PagePlugin {
   return buildPlugin()
 }
 export { migrateInlineMedia, type MigrationKept, type MigrationResult } from './migrate'
+export { inlineStoredFiles, type InlineOptions, type OmittedFile } from './portable'

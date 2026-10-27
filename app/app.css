@@ -102,3 +102,9 @@ body {
 .app-frame:has(.app-error-stack > *) {
   padding-bottom: 9rem;
 }
+.save-status.is-notice {
+  padding: 0.5rem 1rem;
+  background: var(--page-bg);
+  border-top: 1px solid var(--page-border, currentColor);
+  flex-wrap: wrap;
+}

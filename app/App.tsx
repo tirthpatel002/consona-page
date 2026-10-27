@@ -7,6 +7,7 @@ import { demoDocumentId as documentId, loadDemoPage, MissingPageError, openOlder
 import { PageToolbar } from './PageToolbar'
 import { SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
+import { ExportNotice } from './ExportNotice'
 import { pagePlugins } from './plugins'
 import '../src/utils/banner/banner.css'
 
@@ -31,6 +32,7 @@ function Page({ initialContent }: { readonly initialContent: JSONContent }) {
       <PageToolbar page={page} />
       {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
       <SidecarStatus errorHost={errorHost} />
+      <ExportNotice host={errorHost} />
       <PageEditor page={page} />
     </div>
   )
