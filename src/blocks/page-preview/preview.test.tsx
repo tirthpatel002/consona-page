@@ -103,6 +103,17 @@ describe('page previews', () => {
     expect(html).toContain('inert=""')
     expect(html).not.toMatch(/<script|<iframe|<a |javascript:|tracker.invalid|youtube-nocookie/)
   })
+  it('renders safe inline raster media without a stored-file reference', () => {
+    const html = renderToStaticMarkup(
+      <PreviewBody
+        nodes={previewNodes(
+          doc([{ type: 'media', attrs: { kind: 'image', src: 'data:image/png;base64,AAAA', alt: 'Inline raster' } }]),
+        )}
+      />,
+    )
+    expect(html).toContain('<img')
+    expect(html).toContain('data:image/png;base64,AAAA')
+  })
   it('the block persists only an id, validates props and remains passive when locked', () => {
     const { registry, pages } = setup()
     const plugin = createPagePreviewPlugin({ registry, pages, pageId: () => 'p', onOpen: () => undefined })

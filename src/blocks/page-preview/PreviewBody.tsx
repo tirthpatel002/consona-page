@@ -36,7 +36,7 @@ function PreviewImage({ node, blobs }: { readonly node: PreviewNode; readonly bl
   // Preview remote media only as a labelled placeholder: opening a parent must not contact a third-party host.
   const raw = node.attrs?.src
   const src =
-    stored?.ref === ref
+    isBlobRef(ref) && stored?.ref === ref
       ? stored?.url
       : typeof raw === 'string' && raw.startsWith('data:image/') && isSafeMediaSrc('image', raw)
         ? raw

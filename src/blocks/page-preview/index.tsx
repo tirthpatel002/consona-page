@@ -16,7 +16,8 @@ export interface PagePreviewProps {
 }
 
 export function PagePreview({ registry, pages, blobs, pageId, parentId, version, onOpen }: PagePreviewProps) {
-  const [state, setState] = useState<PreviewState | null>(null)
+  const [loaded, setLoaded] = useState<{ id: string; value: PreviewState } | null>(null)
+  const state = loaded?.id === pageId ? loaded.value : null
   const [failed, setFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
@@ -27,13 +28,13 @@ export function PagePreview({ registry, pages, blobs, pageId, parentId, version,
       void readPreview(registry, pages, pageId, parentId).then(
         (next) => {
           if (!cancelled && request === generation) {
-            setState(next)
+            setLoaded({ id: pageId, value: next })
             setFailed(false)
           }
         },
         () => {
           if (!cancelled && request === generation) {
-            setState(null)
+            setLoaded(null)
             setFailed(true)
           }
         },
