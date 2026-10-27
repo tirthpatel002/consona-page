@@ -535,3 +535,24 @@
   bottom: auto;
   top: calc(100% + 6px);
 }
+
+/* Broken source: keep the block visible with a plain notice (the caption and everything else stay). */
+.tiptap .page-media__frame[data-broken] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 7rem;
+  border: 1px dashed var(--page-border);
+  background: var(--page-muted);
+  color: var(--page-muted-fg);
+  line-height: 1.4;
+  font-size: 0.85rem;
+}
+.tiptap .page-media__frame[data-broken] > :is(img, video, audio) {
+  display: none;
+}
+.tiptap .page-media__frame[data-broken]::before {
+  content: 'This file could not be loaded. Replace it or open the original.';
+  padding: 1rem;
+  text-align: center;
+}

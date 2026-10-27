@@ -266,6 +266,15 @@ function attachResize(view: EditorView, editor: Editor) {
     // `left`, not a transform: a transformed ancestor would break the fixed-position menus inside the bar.
     if (shift !== 0) slot.style.left = `${Math.round(shift)}px`
   }
+  /** Marks pictures that failed to load so the block shows a notice rather than collapsing. */
+  const markBroken = () => {
+    for (const img of view.dom.querySelectorAll<HTMLImageElement>('.page-media__frame img[src]')) {
+      const frame = img.closest('.page-media__frame')
+      if (img.complete && img.naturalWidth === 0) frame?.setAttribute('data-broken', '')
+      else if (img.complete) frame?.removeAttribute('data-broken')
+    }
+  }
+  view.dom.addEventListener('error', () => requestAnimationFrame(markBroken), true)
   window.addEventListener('resize', clampBar)
   window.addEventListener('scroll', clampBar, true)
   // The bar content is a React portal that fills in after the selection update, so watch for it too.
@@ -276,6 +285,8 @@ function attachResize(view: EditorView, editor: Editor) {
       requestAnimationFrame(clampBar)
       // Layout can settle a moment later (panels closing, pictures loading).
       setTimeout(clampBar, 150)
+      setTimeout(markBroken, 150)
+      setTimeout(markBroken, 1200)
     },
     destroy() {
       window.removeEventListener('resize', clampBar)
