@@ -1,7 +1,9 @@
 import { Extension, type Editor } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
+import { createBlobAdopter } from './adopt'
 import { MEDIA_NODE } from './extensions'
+import { mediaHost } from './host'
 import { kindOfAny, kindOfFile, kindOfUrl, importFile } from './files'
 import { insertMedia, setMediaLayout } from './operations'
 import { openPanel } from './panelStore'
@@ -104,6 +106,19 @@ export const MediaBehavior = Extension.create({
           },
         },
         view: (view) => attachResize(view, editor),
+      }),
+      new Plugin({
+        key: new PluginKey('pageMediaAdopt'),
+        view: () => {
+          const { blobs, pageId } = mediaHost()
+          if (!blobs || !pageId) return {}
+          const adopter = createBlobAdopter(editor, blobs, pageId, mediaWarning)
+          adopter.scan()
+          return {
+            update: (_view, prev) => (prev.doc !== editor.state.doc ? adopter.scan() : undefined),
+            destroy: adopter.destroy,
+          }
+        },
       }),
     ]
   },
