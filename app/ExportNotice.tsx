@@ -6,13 +6,15 @@ import { inStack } from './SaveStatus'
 export function ExportNotice({ host }: { readonly host: HTMLElement | null }) {
   const omitted = useSyncExternalStore(subscribeExportNotice, getExportNotice)
   if (omitted.length === 0) return null
+  const failed = omitted.some((o) => o.ref === '')
   const reasons = [...new Set(omitted.map((o) => o.reason))].join(' ')
   return inStack(
     host,
     <div className="save-status is-notice" role="status">
       <span>
-        {omitted.length === 1 ? '1 file was' : `${String(omitted.length)} files were`} not included in the export.{' '}
-        {reasons}
+        {failed
+          ? 'Stored files could not be prepared, so this export may be missing images or files. Check it before you rely on it.'
+          : `${omitted.length === 1 ? '1 file was' : `${String(omitted.length)} files were`} not included in the export. ${reasons}`}
       </span>
       <button type="button" onClick={dismissExportNotice}>
         Dismiss
