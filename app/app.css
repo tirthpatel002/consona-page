@@ -242,3 +242,13 @@ body {
     display: inline-flex;
   }
 }
+
+/* Lines the AI and settings buttons up with the toolbar above them. */
+.app-ai-row {
+  padding: 0 16px;
+}
+@media (max-width: 700px) {
+  .app-ai-row {
+    padding: 0 8px;
+  }
+}

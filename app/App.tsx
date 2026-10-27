@@ -104,7 +104,9 @@ function Page({
       <PageBanner documentId={documentId} title={title} />
       <PageToolbar page={page} />
       {page.editor && (
-        <AiTools editor={page.editor} pageId={documentId} engine={demoPagesEngine} settings={demoSettings} />
+        <div className="app-ai-row">
+          <AiTools editor={page.editor} pageId={documentId} engine={demoPagesEngine} settings={demoSettings} />
+        </div>
       )}
       {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
       <SidecarStatus errorHost={errorHost} />
