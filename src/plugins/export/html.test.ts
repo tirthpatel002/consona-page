@@ -101,3 +101,28 @@ describe('fromHtml', () => {
     })
   })
 })
+
+describe('toHtml style values', () => {
+  const doc = (attrs: Record<string, string>): Doc => ({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x', marks: [{ type: 'textStyle', attrs }] }] }],
+  })
+
+  it('cannot break out of the style attribute or add markup', () => {
+    const html = toHtml(
+      doc({ color: 'red" onmouseover="alert(1)', backgroundColor: 'red;"><img src=x onerror=alert(1)>' }),
+      {
+        standalone: false,
+      },
+    )
+    expect(html).not.toContain('onmouseover')
+    expect(html).not.toContain('<img')
+    expect(html).not.toContain('style=')
+  })
+
+  it('drops non-color values and keeps plain colors', () => {
+    const html = toHtml(doc({ color: 'url(https://example.com/x)', backgroundColor: '#ff0000' }), { standalone: false })
+    expect(html).not.toContain('url(')
+    expect(html).toContain('background-color: #ff0000')
+  })
+})

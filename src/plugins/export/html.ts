@@ -16,14 +16,18 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+/** A plain CSS color: hex, named, or a rgb/hsl function. Anything else is dropped from the export. */
+const SAFE_COLOR = /^(#[0-9a-f]{3,8}|[a-z]{3,30}|(?:rgb|hsl)a?\([0-9.,%\s/-]{1,60}\))$/i
+
 function styleOf(marks: readonly DocMark[]): string {
   const parts: string[] = []
   for (const mark of marks) {
     if (mark.type !== 'textStyle') continue
     const color = mark.attrs?.color
     const background = mark.attrs?.backgroundColor
-    if (typeof color === 'string' && color) parts.push(`color: ${color}`)
-    if (typeof background === 'string' && background) parts.push(`background-color: ${background}`)
+    if (typeof color === 'string' && SAFE_COLOR.test(color.trim())) parts.push(`color: ${color.trim()}`)
+    if (typeof background === 'string' && SAFE_COLOR.test(background.trim()))
+      parts.push(`background-color: ${background.trim()}`)
   }
   return parts.join('; ')
 }
