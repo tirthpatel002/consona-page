@@ -27,3 +27,11 @@ no DOM code of its own; the editor it is given does.
 - Compact markdown text with directives, marks inside replaced text (replaced text is plain, so old marks in it are dropped), move steps, props edits for non-text blocks, closed-page edits on the store copy, `engine.undo`, and a persisted request-id log. Idempotency and revision memory are lost when the handle is dropped.
 - A revision is a hash of the page JSON. A collision would need a different page with the same 32-bit hash; the stale check on touched blocks uses the same kind of hash. This is acceptable for catching accidental conflicts, not for security.
 - Searching across pages is not part of this slice.
+
+## Moving blocks
+
+`{ op: 'moveAfter', id, after }` moves a block, with its content and ids, to directly after another block. Both
+blocks count as touched for the stale check. It is refused (`cycle`) when `after` is the block or inside it,
+and (`not_allowed`) when the new place cannot hold that block type or leaving the old place would make its
+parent invalid; the block is never wrapped or converted to fit. It is one transaction and one undo step with
+the rest of the batch.

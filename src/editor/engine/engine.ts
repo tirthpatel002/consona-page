@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/core'
-import { Fragment, type Node as PMNode } from '@tiptap/pm/model'
+import { Fragment, Slice, type Node as PMNode } from '@tiptap/pm/model'
+import { ReplaceStep } from '@tiptap/pm/transform'
 import { isBlockId } from '../core'
 
 /** Every block addressed by the engine has a `blockId` (see core/blockId.ts). */
@@ -37,6 +38,8 @@ export type Step =
   /** Adds a plain paragraph after the block `id` (a top-level block, or a block inside a container that accepts paragraphs there). */
   | { readonly op: 'insertParagraphAfter'; readonly id: string; readonly text: string }
   | { readonly op: 'delete'; readonly id: string }
+  /** Moves the block `id` (with its content and ids) to directly after the block `after`. Refused when the new place cannot hold it, or `after` is inside `id`. */
+  | { readonly op: 'moveAfter'; readonly id: string; readonly after: string }
 
 export interface EditRequest {
   /** Revision the caller read. The edit is refused if a block it touches changed since. */
@@ -53,6 +56,7 @@ export type EditErrorCode =
   | 'unknown_block'
   | 'not_text_target'
   | 'not_allowed'
+  | 'cycle'
   | 'invalid_step'
   | 'too_large'
 
@@ -236,6 +240,16 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
           return
         }
         touched.add(step.id)
+        if (step.op === 'moveAfter') {
+          if (typeof step.after !== 'string' || !current.has(step.after)) {
+            errors.push({
+              code: 'unknown_block',
+              step: index,
+              id: step.after,
+              message: `No block with id "${String(step.after)}" on this page.`,
+            })
+          } else touched.add(step.after)
+        }
       })
       // Blocks the batch touches must be unchanged since the revision the caller read.
       const changed = [...touched].filter((id) => {
@@ -268,7 +282,10 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
             message: 'An earlier step in this batch removed this block.',
           })
         }
-        if (step.op !== 'delete' && (typeof step.text !== 'string' || step.text.length > maxTextChars)) {
+        if (
+          (step.op === 'replaceText' || step.op === 'insertParagraphAfter') &&
+          (typeof step.text !== 'string' || step.text.length > maxTextChars)
+        ) {
           return fail({
             code: typeof step.text === 'string' ? 'too_large' : 'invalid_step',
             step: index,
@@ -321,6 +338,35 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
             })
           }
           tr.delete(live.pos, live.pos + live.node.nodeSize)
+        } else if (step.op === 'moveAfter') {
+          const target = blocksOf(tr.doc).get(step.after)
+          if (!target) {
+            return fail({
+              code: 'unknown_block',
+              step: index,
+              id: step.after,
+              message: 'An earlier step removed the target block.',
+            })
+          }
+          if (step.after === step.id || (target.pos >= live.pos && target.pos < live.pos + live.node.nodeSize)) {
+            return fail({ code: 'cycle', step: index, id: step.id, message: 'A block cannot be moved into itself.' })
+          }
+          const size = live.node.nodeSize
+          const targetEnd = target.pos + target.node.nodeSize
+          tr.delete(live.pos, live.pos + size)
+          const insertAt = targetEnd > live.pos ? targetEnd - size : targetEnd
+          try {
+            // A raw ReplaceStep: `tr.insert` would try to fit the node by wrapping it, changing its type.
+            tr.step(new ReplaceStep(insertAt, insertAt, new Slice(Fragment.from(live.node), 0, 0)))
+            tr.doc.check()
+          } catch {
+            return fail({
+              code: 'not_allowed',
+              step: index,
+              id: step.id,
+              message: 'The block cannot go there, or leaving its old place would make that invalid.',
+            })
+          }
         } else {
           return fail({ code: 'invalid_step', step: index, message: 'Unknown step.' })
         }

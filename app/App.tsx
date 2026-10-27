@@ -6,6 +6,7 @@ import { PageBanner } from '../src/utils/banner/PageBanner'
 import { loadDemoPage, MissingPageError, openOlderLocalCopy } from './demoSession'
 import { PageToolbar } from './PageToolbar'
 import { SaveStatus } from './SaveStatus'
+import { SidecarStatus } from './SidecarStatus'
 import { pagePlugins } from './plugins'
 import '../src/utils/banner/banner.css'
 
@@ -42,6 +43,7 @@ function Page({ initialContent }: { readonly initialContent: JSONContent }) {
       <PageBanner documentId={documentId} title={TITLE} />
       <PageToolbar page={page} />
       {page.editor && <SaveStatus editor={page.editor} />}
+      <SidecarStatus />
       <PageEditor page={page} />
     </div>
   )

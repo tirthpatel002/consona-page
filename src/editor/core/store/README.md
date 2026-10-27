@@ -56,6 +56,8 @@ in the background, so a failed write is reported through `onWriteError` and `flu
 `sidecarWriteFailed`) instead of throwing. Older localStorage copies are imported once per key and left in
 place; a record changed or removed in IndexedDB is not brought back from them.
 
-Not covered: the demo has no visible indicator for `sidecarWriteFailed`, a second tab's history or comments are
+The demo shows a fixed bottom bar ("Version history or comments could not be saved on this device") with Try again, which calls `retry()` (rewrites everything held in memory) and clears the bar only when that write is stored. The existing save errors and conflict bar use the same fixed placement so they are seen wherever the reader is scrolled.
+
+Not covered: a second tab's history or comments are
 not live-updated, and the pagehide flush is best effort. Checked in desktop Chrome only: a typed edit created
 a version record in IndexedDB that survived a reload.

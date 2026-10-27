@@ -28,6 +28,16 @@ body {
 }
 .save-status.is-error {
   color: var(--page-danger);
+  /* An error must be seen wherever the reader is scrolled, so it is fixed to the bottom of the window. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+  background: var(--page-bg);
+  border-top: 1px solid var(--page-border, currentColor);
 }
 .save-status button {
   font: inherit;

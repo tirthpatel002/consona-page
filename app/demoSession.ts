@@ -114,12 +114,33 @@ const sidecar = indexedDbStore ? createIndexedDbSidecar() : null
 let sidecarReady: Promise<void> | null = null
 /** True after a background write of history or comments failed, so they may not survive a reload. */
 export let sidecarWriteFailed = false
+const sidecarListeners = new Set<() => void>()
+const setSidecarFailed = (value: boolean) => {
+  if (sidecarWriteFailed === value) return
+  sidecarWriteFailed = value
+  sidecarListeners.forEach((l) => l())
+}
+export const subscribeSidecar = (listener: () => void) => {
+  sidecarListeners.add(listener)
+  return () => void sidecarListeners.delete(listener)
+}
+export const getSidecarFailed = () => sidecarWriteFailed
+/** Writes history and comments again. Clears the warning only when the write is stored. */
+export const retrySidecar = async (): Promise<void> => {
+  if (!sidecar) return
+  try {
+    await sidecar.retry()
+    setSidecarFailed(false)
+  } catch {
+    setSidecarFailed(true)
+  }
+}
 /** History and comments move to IndexedDB before the editor mounts. If that fails they stay in localStorage. */
 export const prepareSidecar = (): Promise<void> => {
   if (!sidecar) return Promise.resolve()
   sidecarReady ??= sidecar.ready().then(
     () => {
-      sidecar.onWriteError = () => (sidecarWriteFailed = true)
+      sidecar.onWriteError = () => setSidecarFailed(true)
       setSidecarStorage(sidecar)
     },
     () => undefined,

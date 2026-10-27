@@ -32,6 +32,8 @@ export interface IndexedDbSidecar extends SidecarStorage {
   ready(): Promise<void>
   /** Resolves when all pending writes have been stored. Rejects with the first write failure since the last flush. */
   flush(): Promise<void>
+  /** Writes every record held in memory again, then resolves when stored. Rejects if that fails too. */
+  retry(): Promise<void>
   /** Called when a background write fails, so the host can show that the data is not durable. */
   onWriteError?: (error: unknown) => void
 }
@@ -126,6 +128,19 @@ export function createIndexedDbSidecar(
       } catch {
         // localStorage unavailable: nothing to import
       }
+      await sidecar.flush()
+    },
+    async retry() {
+      for (const [key, value] of cache) {
+        if (key.startsWith(IMPORTED)) continue
+        enqueue(() =>
+          run('readwrite', (s) => {
+            s.put(value, key)
+            return undefined
+          }),
+        )
+      }
+      failure = null
       await sidecar.flush()
     },
     async flush() {

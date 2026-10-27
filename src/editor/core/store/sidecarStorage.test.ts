@@ -56,7 +56,8 @@ describe('sidecar storage', () => {
   })
 
   it('reports a failed background write through onWriteError and flush', async () => {
-    const a = createIndexedDbSidecar({ name: dbName() })
+    const name = dbName()
+    const a = createIndexedDbSidecar({ name })
     await a.ready()
     let seen: unknown = null
     a.onWriteError = (e) => (seen = e)
@@ -74,5 +75,11 @@ describe('sidecar storage', () => {
     } finally {
       IDBObjectStore.prototype.put = original
     }
+    // retry writes everything held in memory again and clears the failure
+    await a.retry()
+    const b = createIndexedDbSidecar({ name })
+    await b.ready()
+    expect(b.getItem('k2')).toBe('v')
+    expect(b.getItem('k')).toBe('vvvvvvvvvv')
   })
 })
