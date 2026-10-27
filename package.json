@@ -13,7 +13,10 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "build:library": "vite build --config vite.library.config.ts && tsc -p tsconfig.library.json && node scripts/finalize-declarations.mjs",
+    "test:package": "npm run build:library && node scripts/package-smoke.mjs",
+    "prepack": "npm run build:library"
   },
   "dependencies": {
     "@tiptap/extension-code-block-lowlight": "^3.32.0",
@@ -29,13 +32,13 @@
     "lowlight": "^3.3.0",
     "lucide-react": "^1.61.0",
     "mermaid": "^12.2.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@tiptap/core": "^3.32.0",
+    "@tiptap/extension-list": "^3.32.0",
+    "@tiptap/extension-text-style": "^3.32.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@tiptap/extension-text-style": "^3.32.0",
     "@types/katex": "^0.16.8",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
@@ -54,6 +57,110 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.0",
     "vite": "^8.3.5",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "description": "A composable block editor with typed programmatic editing and storage adapters",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "files": [
+    "dist/library",
+    "docs",
+    "README.md",
+    "DESIGN.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "module": "./dist/library/react.js",
+  "types": "./dist/library/types/package/react.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/library/types/package/react.d.ts",
+      "import": "./dist/library/react.js"
+    },
+    "./react": {
+      "types": "./dist/library/types/package/react.d.ts",
+      "import": "./dist/library/react.js"
+    },
+    "./engine": {
+      "types": "./dist/library/types/package/engine.d.ts",
+      "import": "./dist/library/engine.js"
+    },
+    "./store": {
+      "types": "./dist/library/types/package/store.d.ts",
+      "import": "./dist/library/store.js"
+    },
+    "./compact": {
+      "types": "./dist/library/types/package/compact.d.ts",
+      "import": "./dist/library/compact.js"
+    },
+    "./blocks": {
+      "types": "./dist/library/types/blocks/index.d.ts",
+      "import": "./dist/library/blocks.js"
+    },
+    "./plugins/text": {
+      "types": "./dist/library/types/plugins/text/index.d.ts",
+      "import": "./dist/library/plugins/text.js"
+    },
+    "./plugins/lists": {
+      "types": "./dist/library/types/plugins/lists/index.d.ts",
+      "import": "./dist/library/plugins/lists.js"
+    },
+    "./plugins/columns": {
+      "types": "./dist/library/types/plugins/columns/index.d.ts",
+      "import": "./dist/library/plugins/columns.js"
+    },
+    "./plugins/block-actions": {
+      "types": "./dist/library/types/plugins/block-actions/index.d.ts",
+      "import": "./dist/library/plugins/block-actions.js"
+    },
+    "./plugins/block-selection": {
+      "types": "./dist/library/types/plugins/block-selection/index.d.ts",
+      "import": "./dist/library/plugins/block-selection.js"
+    },
+    "./plugins/formatting": {
+      "types": "./dist/library/types/plugins/formatting/index.d.ts",
+      "import": "./dist/library/plugins/formatting.js"
+    },
+    "./plugins/comments": {
+      "types": "./dist/library/types/plugins/comments/index.d.ts",
+      "import": "./dist/library/plugins/comments.js"
+    },
+    "./plugins/emoji": {
+      "types": "./dist/library/types/plugins/emoji/index.d.ts",
+      "import": "./dist/library/plugins/emoji.js"
+    },
+    "./plugins/export": {
+      "types": "./dist/library/types/plugins/export/index.d.ts",
+      "import": "./dist/library/plugins/export.js"
+    },
+    "./plugins/media": {
+      "types": "./dist/library/types/plugins/media/index.d.ts",
+      "import": "./dist/library/plugins/media.js"
+    },
+    "./plugins/persistence": {
+      "types": "./dist/library/types/plugins/persistence/index.d.ts",
+      "import": "./dist/library/plugins/persistence.js"
+    },
+    "./plugins/props-editor": {
+      "types": "./dist/library/types/plugins/props-editor/index.d.ts",
+      "import": "./dist/library/plugins/props-editor.js"
+    },
+    "./plugins/json-view": {
+      "types": "./dist/library/types/plugins/json-view/index.d.ts",
+      "import": "./dist/library/plugins/json-view.js"
+    },
+    "./styles.css": "./dist/library/style.css",
+    "./markdown": {
+      "types": "./dist/library/types/package/markdown.d.ts",
+      "import": "./dist/library/markdown.js"
+    }
+  },
+  "peerDependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   }
 }

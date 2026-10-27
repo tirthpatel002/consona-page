@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isBlobRef } from './blobRef'
 import type { BlobStore } from '../../editor/core'
 
 /**
@@ -16,10 +17,7 @@ export const setMediaHost = (next: MediaHost): void => {
 }
 export const mediaHost = (): MediaHost => host
 
-const BLOB_REF = /^blob:[A-Za-z0-9_-]{4,64}$/
-/** A stored-file reference: `blob:` plus the store id. It is never a link target and never a source. */
-export const isBlobRef = (value: unknown): value is string => typeof value === 'string' && BLOB_REF.test(value)
-export const blobRefFor = (id: string): string => `blob:${id}`
+export { isBlobRef, blobRefFor } from './blobRef'
 const idOf = (ref: string): string => ref.slice('blob:'.length)
 
 interface Entry {

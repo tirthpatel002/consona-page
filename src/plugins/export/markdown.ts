@@ -1,4 +1,4 @@
-import { isBlobRef } from '../media/host'
+import { isBlobRef } from '../media/blobRef'
 import { asKind, embedOriginal, isSafeMediaSrc } from '../media/sources'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
 
