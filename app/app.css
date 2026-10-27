@@ -16,3 +16,27 @@ html {
 body {
   margin: 0;
 }
+
+.save-status {
+  min-height: 1.5rem;
+  padding: 0 1rem;
+  font-size: 0.8rem;
+  color: var(--page-muted-fg);
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.save-status.is-error {
+  color: var(--page-danger);
+}
+.save-status button {
+  font: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.app-status {
+  padding: 2rem 1rem;
+}

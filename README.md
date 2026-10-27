@@ -222,11 +222,13 @@ toolbars, rendered once by `PageEditor`; it subscribes to the editor itself), th
 
 ## Saving and recovery
 
-The demo app saves the edited document in the browser's localStorage under its document id.
+The demo saves the page to IndexedDB through the page store (`src/editor/core/store`), under its document id. If IndexedDB is unavailable it saves to localStorage in the original format. A page saved by an earlier version in localStorage is imported once on first load; the old copy is left in place.
 
-- Edits are written 500 ms after the last change. The latest edit is also written when the page is hidden, the tab is closed (`pagehide`) or the editor is destroyed. This is best effort: a browser crash, a killed process or a full storage quota can still lose the last changes.
-- Restoring a version from history updates the saved document, so a reload keeps the restored content.
-- If a document write fails (for example, the storage is full), the editor keeps working in memory and retries on the next change. There is no visible save indicator or storage-error message for the document yet.
+- The page is loaded before the editor opens, so a late read cannot replace text you already typed. If the saved page cannot be read, the editor does not open (a first save would overwrite it) and offers "Try again".
+- Edits are written 500 ms after the last change, and also when the page is hidden, closed (`pagehide`) or the editor is destroyed. Saves run one at a time and the latest text wins. Flushing on close is best effort: a browser crash, a killed process or an asynchronous IndexedDB write that the browser cancels on close can still lose the last changes.
+- Every save carries the revision it was loaded at. If the page was changed elsewhere (for example in another tab), saving stops, the status line says so, and nothing is overwritten. Reload to get the latest copy; edits made in the stale tab since then are not saved and not merged.
+- A visible status line shows "Saving...", "Saved on this device", or the failure with a "Try again" button. Restoring a version from history is saved like any other edit.
+- Not done: oversized media is stored inside the document and can hit storage limits (not checked or reported separately), version history and comments still use localStorage, there is no cross-tab live update, and the status wording is first-pass.
 
 ## Bundle size
 

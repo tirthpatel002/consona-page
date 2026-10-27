@@ -1,4 +1,5 @@
 export { StaleRevisionError } from './types'
 export type { PageStore, PageSummary, PutOptions, StoredPage } from './types'
 export { createMemoryStore } from './memoryStore'
+export { createLocalStorageStore } from './localStorageStore'
 export { createIndexedDbStore, SCHEMA_VERSION, type IndexedDbStoreOptions } from './indexedDbStore'
