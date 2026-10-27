@@ -220,6 +220,14 @@ props, openPanel }) }` — shown in every applicable block's handle menu), `pane
 toolbars, rendered once by `PageEditor`; it subscribes to the editor itself), then add it to
 `src/app/plugins.ts`. See `src/plugins/*` and `src/blocks/table` for examples.
 
+## Saving and recovery
+
+The demo app saves the edited document in the browser's localStorage under its document id.
+
+- Edits are written 500 ms after the last change. The latest edit is also written when the page is hidden, the tab is closed (`pagehide`) or the editor is destroyed. This is best effort: a browser crash, a killed process or a full storage quota can still lose the last changes.
+- Restoring a version from history updates the saved document, so a reload keeps the restored content.
+- If a write fails (for example, the storage is full), the editor keeps working in memory and the failure is reported in the document storage popover. There is no always-visible save indicator yet.
+
 ## Bundle size
 
 `npm run build` → one JS chunk ≈ 762 kB min / 240 kB gzip (Tiptap/ProseMirror and React DOM are most of it) and
