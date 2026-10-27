@@ -92,4 +92,18 @@ describe('block ids', () => {
     expect(new Set(ids).size).toBe(ids.length)
     destroy()
   })
+
+  it("regression: the first load of a page that ends in a list adds the editor's empty trailing paragraph once, and nothing else changes", () => {
+    const { editor, destroy } = make('<ul><li><p>x</p></li></ul>')
+    const types: string[] = []
+    editor.state.doc.forEach((child) => types.push(`${child.type.name}:${child.textContent}`))
+    expect(types).toEqual(['bulletList:x', 'paragraph:'])
+    const ids = idsOf(editor)
+    editor.commands.insertContentAt(editor.state.doc.content.size - 1, 'y')
+    const after: string[] = []
+    editor.state.doc.forEach((child) => after.push(`${child.type.name}:${child.textContent}`))
+    expect(after).toEqual(['bulletList:x', 'paragraph:y']) // typing goes into that paragraph, no second one is added
+    expect(idsOf(editor)).toEqual(ids) // typing into it changes no id
+    destroy()
+  })
 })

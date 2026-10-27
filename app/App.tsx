@@ -86,39 +86,54 @@ export function App() {
     const { older } = load
     return (
       <div className="app-frame app-status" role="alert">
-        <p>This page was saved in this browser before, but its saved copy is gone. Nothing was opened or changed.</p>
-        {older && (
-          <p>
-            An older copy from before the storage upgrade exists. It may be out of date and will become the saved page
-            if you open it.
-          </p>
-        )}
-        <div className="app-status__actions">
+        <section className="recovery" aria-labelledby="recovery-title">
+          <h1 id="recovery-title" className="recovery__title">
+            The saved page is missing
+          </h1>
+          <p>This page was saved in this browser before, but its saved copy is gone. Nothing was opened or changed.</p>
           {older && (
-            <button type="button" onClick={() => setLoad({ state: 'ready', content: older })}>
-              Open the older copy
-            </button>
+            <p>
+              An older copy from before the storage upgrade exists. It may be out of date and will become the saved page
+              if you open it.
+            </p>
           )}
-          <button type="button" onClick={() => setLoad({ state: 'ready', content: initialDoc })}>
-            Start with the sample page
-          </button>
-        </div>
+          <div className="app-status__actions">
+            {older && (
+              <button
+                type="button"
+                className="is-primary"
+                autoFocus
+                onClick={() => setLoad({ state: 'ready', content: older })}
+              >
+                Open the older copy
+              </button>
+            )}
+            <button type="button" onClick={() => setLoad({ state: 'ready', content: initialDoc })}>
+              Start with the sample page
+            </button>
+          </div>
+        </section>
       </div>
     )
   }
   if (load.state === 'error') {
     return (
       <div className="app-frame app-status" role="alert">
-        <p>Could not read the saved page, so it was not opened. Nothing was changed.</p>
-        <button
-          type="button"
-          onClick={() => {
-            setLoad({ state: 'loading' })
-            setAttempt((n) => n + 1)
-          }}
-        >
-          Try again
-        </button>
+        <section className="recovery">
+          <h1 className="recovery__title">Could not read the saved page</h1>
+          <p>It was not opened, and nothing was changed.</p>
+          <button
+            type="button"
+            className="is-primary"
+            autoFocus
+            onClick={() => {
+              setLoad({ state: 'loading' })
+              setAttempt((n) => n + 1)
+            }}
+          >
+            Try again
+          </button>
+        </section>
       </div>
     )
   }
