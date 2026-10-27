@@ -20,7 +20,7 @@ Plugin names: `text`, `lists`, `columns`, `block-actions`, `block-selection`, `f
 `export`, `media`, `persistence`, `props-editor`, `json-view`. Further feature entries must be added to the
 package export map and packed-consumer checks with their implementation, not exposed through deep imports.
 
-Node >=22.12 is the development/build baseline. React/React DOM are peer dependencies matching the tested
+Node >=22.22.2 is the development/build baseline. React/React DOM are peer dependencies matching the tested
 19.x line in package.json. Tiptap 3 is a direct dependency; custom extensions must use a compatible single
 Tiptap/ProseMirror graph. Do not mix major versions or bundle a second copy of React. No CJS entry is built.
 

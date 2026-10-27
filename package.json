@@ -63,7 +63,7 @@
   },
   "description": "A composable block editor with typed programmatic editing and storage adapters",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.22.2"
   },
   "files": [
     "dist/library",

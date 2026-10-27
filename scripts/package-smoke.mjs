@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
 
 const root = process.cwd()
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
@@ -23,6 +23,20 @@ try {
       assert(files.includes(path.replace(/^\.\//, '')), `Missing packed export: ${path}`)
     }
   }
+  // Check the emitted graph as well as import success: React must never leak into headless entries.
+  const visited = new Set()
+  function checkHeadless(path) {
+    if (visited.has(path)) return
+    visited.add(path)
+    const source = readFileSync(path, 'utf8')
+    for (const [, specifier] of source.matchAll(/(?:from\s*|import\s*)['"]([^'"]+)['"]/g)) {
+      assert(!/^(?:react(?:-dom)?(?:\/|$)|@tiptap\/react(?:\/|$))/.test(specifier), `React in headless graph: ${path}`)
+      assert(!specifier.endsWith('.css'), `CSS in headless graph: ${path}`)
+      if (specifier.startsWith('.')) checkHeadless(resolve(dirname(path), specifier))
+    }
+  }
+  for (const entry of ['engine', 'store', 'compact', 'markdown'])
+    checkHeadless(resolve(root, `dist/library/${entry}.js`))
   writeFileSync(join(temp, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
   npm([
     'install',
@@ -116,6 +130,20 @@ void [extensions, store, codec, options, request, createPageEngine, createPagesE
 export type EngineOptions = PagesEngineOptions
 `,
   )
+  writeFileSync(
+    join(temp, 'react-consumer.tsx'),
+    `
+import { composePlugins, PageEditor, usePageController } from '${pkg.name}/react'
+import { textPlugin } from '${pkg.name}/plugins/text'
+import { listsPlugin } from '${pkg.name}/plugins/lists'
+const registry = composePlugins([textPlugin(), listsPlugin])
+const initialContent = { type: 'doc', content: [{ type: 'paragraph' }] }
+export function Document() {
+  const controller = usePageController({ registry, documentId: 'workspace:page-one', initialContent })
+  return <PageEditor page={controller} />
+}
+`,
+  )
   for (const mode of ['NodeNext', 'Bundler']) {
     writeFileSync(
       join(temp, 'tsconfig.json'),
@@ -131,7 +159,7 @@ export type EngineOptions = PagesEngineOptions
           jsx: 'react-jsx',
           types: ['react', 'react-dom'],
         },
-        files: ['consumer.ts'],
+        files: ['consumer.ts', 'react-consumer.tsx'],
       }),
     )
     run(['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json'])
