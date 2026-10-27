@@ -94,7 +94,7 @@ block's schema and writes it to the node's `props` attr in one ProseMirror trans
 ⌘Z); invalid props are rejected (`false` + a console warning) and the document is left untouched.
 `selectBlock()` node-selects the block and focuses the editor, so keyboard focus returns to the editor.
 
-**Native table** (`src/blocks/table/`, slash item _Table_). Unlike an embed block (an atom whose content is
+**Native table** (`src/blocks/table/`, slash item _Table_; row and column reordering is described in [`src/blocks/table/REORDER.md`](src/blocks/table/REORDER.md)). Unlike an embed block (an atom whose content is
 component props), the native table is built on `@tiptap/extension-table`
 (`table`, `tableRow`, `tableHeader`, `tableCell` — in Tiptap 3 one package) so every cell is ProseMirror content:
 text selections run within and across cells and into surrounding paragraphs, marks/undo/copy-paste work, and
