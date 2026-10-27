@@ -66,6 +66,15 @@ export const MediaBehavior = Extension.create({
             }
             return false
           },
+          // A press on the picture, player area or file card selects the block; handles, links and players keep their own presses.
+          handleClickOn: (view, _pos, node, nodePos, event) => {
+            if (node.type.name !== MEDIA_NODE || !(event.target instanceof Element)) return false
+            if (!event.target.closest('.page-media__frame')) return false
+            if (event.target.closest('.page-media__resize, a, audio, video, button')) return false
+            if (view.state.selection instanceof NodeSelection && view.state.selection.from === nodePos) return false
+            view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)))
+            return true
+          },
           handleKeyDown: (_view, event) => {
             // Space on a selected image opens it full screen.
             if (event.key !== ' ' || event.metaKey || event.ctrlKey || event.altKey) return false
