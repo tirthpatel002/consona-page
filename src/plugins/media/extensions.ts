@@ -53,11 +53,11 @@ export const Media = Node.create({
       return {
         dom,
         contentDOM,
-        ignoreMutation: (mutation) =>
-          mutation.type !== 'selection' && mutation.target instanceof Element
-            ? mutation.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null
-            : mutation.type !== 'selection' &&
-              mutation.target.parentElement?.closest(`[${MEDIA_TOOLBAR_SLOT}]`) != null,
+        ignoreMutation: (mutation) => {
+          if (mutation.type === 'selection') return false
+          const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement
+          return target?.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null && target !== null
+        },
         stopEvent: (event) =>
           event.target instanceof Element && event.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null,
       }
