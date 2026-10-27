@@ -226,7 +226,7 @@ The demo app saves the edited document in the browser's localStorage under its d
 
 - Edits are written 500 ms after the last change. The latest edit is also written when the page is hidden, the tab is closed (`pagehide`) or the editor is destroyed. This is best effort: a browser crash, a killed process or a full storage quota can still lose the last changes.
 - Restoring a version from history updates the saved document, so a reload keeps the restored content.
-- If a write fails (for example, the storage is full), the editor keeps working in memory and the failure is reported in the document storage popover. There is no always-visible save indicator yet.
+- If a document write fails (for example, the storage is full), the editor keeps working in memory and retries on the next change. There is no visible save indicator or storage-error message for the document yet.
 
 ## Bundle size
 
