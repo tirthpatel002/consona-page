@@ -26,11 +26,9 @@ export const openOriginal = (src: string) => {
   if (isHttp(src)) window.open(src, '_blank', 'noopener,noreferrer')
 }
 
-/** Downloads the source (a data URL or a same-origin or CORS-allowed link). */
-export const downloadSource = (src: string) => {
-  if (!isSafeUrl(src)) return
+const saveAs = (href: string) => {
   const link = document.createElement('a')
-  link.href = src
+  link.href = href
   link.download = ''
   link.rel = 'noopener'
   document.body.appendChild(link)
@@ -38,19 +36,41 @@ export const downloadSource = (src: string) => {
   link.remove()
 }
 
+/**
+ * Downloads the source. Data URLs download directly. A remote link is fetched first, because the browser
+ * ignores `download` for cross-origin links and would navigate the editor tab away; if the fetch is
+ * refused (CORS), the original opens in a new tab instead.
+ */
+export const downloadSource = async (src: string): Promise<void> => {
+  if (!isSafeUrl(src)) return
+  if (!isHttp(src)) return saveAs(src)
+  try {
+    const response = await fetch(src)
+    if (!response.ok) throw new Error(String(response.status))
+    const url = URL.createObjectURL(await response.blob())
+    saveAs(url)
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  } catch {
+    openOriginal(src)
+  }
+}
+
 const currentOf = (editor: Editor) => findSelectedMedia(editor)
+/** Editing actions need a selected block and an editable page: a locked page never changes through the bar. */
+const target = (editor: Editor) => (editor.isEditable ? currentOf(editor) : null)
+const editable = (editor: Editor) => editor.isEditable && currentOf(editor) !== null
 
 const align = (value: MediaAlign, label: string): BlockToolbarAction => ({
   id: `media:align-${value}`,
   label,
   title: label,
-  can: (editor) => currentOf(editor) !== null,
+  can: editable,
   isActive: (editor) => {
     const found = currentOf(editor)
     return found !== null && (editor.state.doc.nodeAt(found.pos)?.attrs.align ?? 'center') === value
   },
   run: (editor) => {
-    const found = currentOf(editor)
+    const found = target(editor)
     if (found) void setMediaLayout.run(editor, found.pos, { align: value })
   },
 })
@@ -65,7 +85,7 @@ const download: BlockToolbarAction = {
   },
   run: (editor) => {
     const found = currentOf(editor)
-    if (found) downloadSource(found.src)
+    if (found) void downloadSource(found.src)
   },
 }
 
@@ -87,9 +107,9 @@ const replace: BlockToolbarAction = {
   id: 'media:replace',
   label: 'Replace with link',
   title: 'Replace with a typed link',
-  can: (editor) => currentOf(editor) !== null,
+  can: editable,
   run: (editor) => {
-    const found = currentOf(editor)
+    const found = target(editor)
     const url = found ? window.prompt('New link (https://...)')?.trim() : undefined
     if (found && url && isHttp(url)) setMediaSource.run(editor, found.pos, url)
   },
@@ -101,10 +121,10 @@ const resetSize: BlockToolbarAction = {
   title: 'Reset size',
   can: (editor) => {
     const found = currentOf(editor)
-    return found !== null && editor.state.doc.nodeAt(found.pos)?.attrs.width !== null
+    return editable(editor) && found !== null && editor.state.doc.nodeAt(found.pos)?.attrs.width !== null
   },
   run: (editor) => {
-    const found = currentOf(editor)
+    const found = target(editor)
     if (found) void setMediaLayout.run(editor, found.pos, { width: null })
   },
 }
@@ -114,9 +134,9 @@ const remove: BlockToolbarAction = {
   label: 'Delete',
   title: 'Delete this block',
   danger: true,
-  can: (editor) => currentOf(editor) !== null,
+  can: editable,
   run: (editor) => {
-    const found = currentOf(editor)
+    const found = target(editor)
     if (found) void deleteMedia.run(editor, found.pos)
   },
 }

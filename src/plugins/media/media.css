@@ -87,3 +87,9 @@
   flex-wrap: wrap;
   white-space: normal;
 }
+/* Selected state in the media bar is neutral: a muted fill and strong text, no accent colour. */
+.tiptap .page-media__toolbar-slot .page-block-toolbar button.is-active {
+  background: var(--page-muted);
+  color: var(--page-fg);
+  font-weight: 600;
+}

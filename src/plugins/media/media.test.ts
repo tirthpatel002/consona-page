@@ -137,3 +137,24 @@ describe('media toolbar', () => {
     destroy()
   })
 })
+
+describe('media toolbar on a locked page', () => {
+  it('disables every editing action and the run guards hold', async () => {
+    const { mediaToolbar } = await import('./mediaToolbar')
+    const { editor, destroy } = make('<p>keep</p>')
+    insertMedia.run(editor, 'image', 'https://x.test/a.png')
+    editor.setEditable(false)
+    const before = JSON.stringify(editor.getJSON())
+    const actions = mediaToolbar.groups.flatMap((g) =>
+      g.kind === 'menus' ? g.menus.flatMap((m) => m.sections.flat()) : [...g.actions],
+    )
+    const editing = actions.filter((a) => !['media:download', 'media:open-original'].includes(a.id))
+    expect(editing.length).toBeGreaterThan(0)
+    for (const action of editing) {
+      expect(action.can(editor)).toBe(false)
+      action.run(editor)
+    }
+    expect(JSON.stringify(editor.getJSON())).toBe(before)
+    destroy()
+  })
+})
