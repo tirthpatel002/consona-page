@@ -468,7 +468,9 @@
   line-height: normal;
 }
 .tiptap .page-media__toolbar-slot {
-  max-width: 100%;
+  /* The bar keeps its own width even when the block is resized narrow. */
+  width: max-content;
+  max-width: min(calc(100vw - 2rem), 30rem);
 }
 .tiptap .page-media__toolbar-slot .page-block-toolbar {
   flex-wrap: wrap;

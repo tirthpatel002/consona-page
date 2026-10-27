@@ -11,7 +11,7 @@ const VIDEO_DATA = /^(?:video\/(?:mp4|webm|ogg))$/i
 const AUDIO_DATA = /^(?:audio\/(?:mpeg|mp3|wav|x-wav|wave|ogg|webm|mp4|aac|flac|x-m4a|m4a))$/i
 /** Document and archive types a file block may hold. Anything that a browser could render as a page is excluded. */
 const FILE_DATA =
-  /^(?:application\/(?:pdf|zip|x-zip-compressed|gzip|octet-stream|json|msword|vnd\.ms-excel|vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.[a-z.]+|vnd\.oasis\.opendocument\.[a-z.]+|rtf)|text\/(?:plain|csv|markdown)|image\/(?:png|jpe?g|gif|webp|avif)|audio\/[a-z0-9.+-]+|video\/(?:mp4|webm|ogg))$/i
+  /^(?:application\/(?:pdf|zip|x-zip-compressed|gzip|octet-stream|json|msword|vnd\.ms-excel|vnd\.ms-powerpoint|rtf|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|vnd\.oasis\.opendocument\.(?:text|spreadsheet|presentation))|text\/(?:plain|csv|markdown))$/i
 
 const hasScheme = (url: string) => /^[a-z][a-z0-9+.-]*:/i.test(url)
 

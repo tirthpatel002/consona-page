@@ -217,6 +217,9 @@ export const Media = Node.create({
     if (kind === 'embed') attrs['data-src'] = src
     if (kind === 'embed') attrs['data-original'] = embedOriginal(src)
     if (name) attrs['data-name'] = name
+    if (typeof node.attrs.commentThread === 'string' && node.attrs.commentThread) {
+      attrs['data-comment-thread'] = node.attrs.commentThread
+    }
     if (size !== null) attrs['data-size'] = String(size)
 
     const handle = (edge: 'left' | 'right') => [

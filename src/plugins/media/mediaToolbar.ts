@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/core'
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import { type BlockToolbarAction, type BlockToolbarDefinition, type BlockToolbarGroup } from '../../editor/core'
+import { commentsUi } from '../comments/uiStore'
 import { MEDIA_NODE, MEDIA_TOOLBAR_SLOT, type MediaAlign } from './extensions'
 import { deleteMedia, setMediaDetails, setMediaLayout } from './operations'
 import { openPanel } from './panelStore'
@@ -117,6 +118,7 @@ const caption: BlockToolbarAction = {
 
 const download: BlockToolbarAction = {
   id: 'media:download',
+  icon: 'export',
   label: 'Download',
   title: 'Download',
   can: (editor) => {
@@ -131,6 +133,7 @@ const download: BlockToolbarAction = {
 
 const original: BlockToolbarAction = {
   id: 'media:open-original',
+  icon: 'open-external',
   label: 'Open original',
   title: 'Open original in a new tab',
   can: (editor) => {
@@ -140,6 +143,18 @@ const original: BlockToolbarAction = {
   run: (editor) => {
     const found = currentOf(editor)
     if (found) openOriginal(found.src)
+  },
+}
+
+const comment: BlockToolbarAction = {
+  id: 'media:comment',
+  icon: 'comment',
+  label: 'Comment',
+  title: 'Comment on this block',
+  can: editable,
+  run: (editor) => {
+    const found = target(editor)
+    if (found) commentsUi.openBlockComposer(found.pos)
   },
 }
 
@@ -252,7 +267,7 @@ function toolbarFor(
     })
   }
   if (extra.captions) groups.push({ kind: 'buttons', actions: [caption] })
-  groups.push({ kind: 'buttons', actions: [download, original] })
+  groups.push({ kind: 'buttons', actions: [download, original, comment] })
   groups.push({
     kind: 'menus',
     menus: [

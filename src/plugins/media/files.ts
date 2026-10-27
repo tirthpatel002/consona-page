@@ -100,7 +100,7 @@ export function readAsDataUrl(file: File, options: ReadOptions = {}): Promise<Re
 export const ACCEPT: Readonly<Record<MediaKind, string>> = {
   image: 'image/png,image/jpeg,image/gif,image/webp,image/avif',
   video: 'video/mp4,video/webm,video/ogg',
-  audio: 'audio/*',
+  audio: 'audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/aac,audio/flac',
   file: '',
   embed: '',
 }
