@@ -35,7 +35,7 @@ try {
       if (specifier.startsWith('.')) checkHeadless(resolve(dirname(path), specifier))
     }
   }
-  for (const entry of ['engine', 'store', 'compact', 'markdown'])
+  for (const entry of ['engine', 'store', 'compact', 'markdown', 'ai-controller'])
     checkHeadless(resolve(root, `dist/library/${entry}.js`))
   writeFileSync(join(temp, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
   npm([
@@ -61,6 +61,9 @@ const store = await import('${pkg.name}/store')
 const engine = await import('${pkg.name}/engine')
 const compact = await import('${pkg.name}/compact')
 const markdown = await import('${pkg.name}/markdown')
+const ai = await import('${pkg.name}/ai-controller')
+assert.equal(typeof ai.createAiReviewController, 'function')
+assert.equal(typeof ai.createMockAiProvider, 'function')
 assert.equal(typeof engine.createPagesEngine, 'function')
 assert.equal(typeof compact.toCompact, 'function')
 assert.equal(markdown.fromMarkdown('hello').type, 'doc')
@@ -90,6 +93,9 @@ const { listsPlugin } = await import('${pkg.name}/plugins/lists')
 const { createPageEngine, createPagesEngine, createMemoryRequestLog } = await import('${pkg.name}/engine')
 const stores = await import('${pkg.name}/store')
 const markdown = await import('${pkg.name}/markdown')
+const ai = await import('${pkg.name}/ai-controller')
+assert.equal(typeof ai.createAiReviewController, 'function')
+assert.equal(typeof ai.createMockAiProvider, 'function')
 const session = createTestEditor({ plugins: [textPlugin(), listsPlugin], content: '<p>Before</p>' })
 try {
   const engine = createPageEngine({ editor: session.editor, markdown: {
@@ -139,6 +145,9 @@ import { composePlugins, type PageControllerOptions, createExtensions, PanelStor
 import { createPageEngine, createPagesEngine, type EditRequest, type PagesEngineOptions } from '${pkg.name}/engine'
 import { createMemoryStore, type PageStore } from '${pkg.name}/store'
 import { textPlugin } from '${pkg.name}/plugins/text'
+import { createAiReviewController, createMockAiProvider } from '${pkg.name}/ai-controller'
+import { captureAiTargets } from '${pkg.name}/plugins/ai-review'
+import { PagePreview, ChildPagePreviews, createPagePreviewPlugin } from '${pkg.name}/blocks/page-preview'
 import { listsPlugin } from '${pkg.name}/plugins/lists'
 import { parseInline, fromMarkdown, inlineToMarkdown } from '${pkg.name}/markdown'
 const registry = composePlugins([textPlugin(), listsPlugin])
@@ -147,7 +156,7 @@ const store: PageStore = createMemoryStore()
 const codec = { parseInline, parseBlocks: (text: string) => fromMarkdown(text).content ?? [], inlineToMarkdown }
 const options: PageControllerOptions = { registry, documentId: 'p1', initialContent: { type: 'doc' } }
 const request: EditRequest = { baseRevision: 'rev', requestId: 'one', steps: [] }
-void [extensions, store, codec, options, request, createPageEngine, createPagesEngine]
+void [extensions, store, codec, options, request, createPageEngine, createPagesEngine, createAiReviewController, createMockAiProvider, captureAiTargets, PagePreview, ChildPagePreviews, createPagePreviewPlugin]
 export type EngineOptions = PagesEngineOptions
 `,
   )
@@ -156,6 +165,9 @@ export type EngineOptions = PagesEngineOptions
     `
 import { composePlugins, PageEditor, usePageController } from '${pkg.name}/react'
 import { textPlugin } from '${pkg.name}/plugins/text'
+import { createAiReviewController, createMockAiProvider } from '${pkg.name}/ai-controller'
+import { captureAiTargets } from '${pkg.name}/plugins/ai-review'
+import { PagePreview, ChildPagePreviews, createPagePreviewPlugin } from '${pkg.name}/blocks/page-preview'
 import { listsPlugin } from '${pkg.name}/plugins/lists'
 const registry = composePlugins([textPlugin(), listsPlugin])
 const initialContent = { type: 'doc', content: [{ type: 'paragraph' }] }
@@ -191,8 +203,12 @@ export function Document() {
     `
 import { composePlugins } from '${pkg.name}/react'
 import { textPlugin } from '${pkg.name}/plugins/text'
+import { createAiReviewController, createMockAiProvider } from '${pkg.name}/ai-controller'
+import { captureAiTargets } from '${pkg.name}/plugins/ai-review'
+import { PagePreview, ChildPagePreviews, createPagePreviewPlugin } from '${pkg.name}/blocks/page-preview'
 import { listsPlugin } from '${pkg.name}/plugins/lists'
 import '${pkg.name}/styles.css'
+void [createAiReviewController, createMockAiProvider, captureAiTargets, PagePreview, ChildPagePreviews, createPagePreviewPlugin]
 document.querySelector('#app')!.textContent = composePlugins([textPlugin(), listsPlugin]).extensions.length.toString()
 `,
   )

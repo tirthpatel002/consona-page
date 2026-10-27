@@ -19,7 +19,7 @@ npm pack --dry-run
 
 `test:package` builds the library, creates a tarball and installs it into a separate temporary directory using
 only the packed package plus explicit test tools. It checks every export target is packed, excludes application
-and source trees, imports store/engine/compact/Markdown without window/document, exercises revision-checked
+and source trees, imports store/engine/compact/Markdown/AI-controller without window/document, exercises revision-checked
 storage and settings, constructs a packed editor in jsdom, applies formatted engine edits, replays and undoes
 them, exercises the packed closed-page factory (create/edit/replay/undo/lock refusal), compiles public consumer types under both NodeNext and Bundler (`strict`, no `skipLibCheck`), and builds a
 browser consumer. It removes temporary files unless `KEEP_PACKAGE_CONSUMER=1` is set.
@@ -54,7 +54,7 @@ load budgets must be set and measured for the actual host.
 
 - Owner chooses license and registry/package identity. Check dependency license obligations and included assets;
   no license grant is implied by the absence of a license file.
-- Final combined-branch package checks after AI/preview integration, clean install and full regression tests.
+- Repeat package checks after any further integration changes. AI-controller, full AI selection helpers and page-preview public entries are covered by packed Node/type/browser-build checks; application browser acceptance remains separate.
 - Real Chrome integration evidence plus Firefox/Safari, mobile/touch and assistive-technology coverage. jsdom,
   synthetic clipboard/drag events and viewport emulation are not native clipboard or real-device tests.
 - Two-real-editor conflict/race checks, crash/upgrade failure paths, real browser quota exhaustion and restore

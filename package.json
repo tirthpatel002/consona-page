@@ -154,6 +154,18 @@
     "./markdown": {
       "types": "./dist/library/types/package/markdown.d.ts",
       "import": "./dist/library/markdown.js"
+    },
+    "./ai-controller": {
+      "types": "./dist/library/types/package/ai-controller.d.ts",
+      "import": "./dist/library/ai-controller.js"
+    },
+    "./plugins/ai-review": {
+      "types": "./dist/library/types/plugins/ai-review/index.d.ts",
+      "import": "./dist/library/plugins/ai-review.js"
+    },
+    "./blocks/page-preview": {
+      "types": "./dist/library/types/package/page-preview.d.ts",
+      "import": "./dist/library/blocks/page-preview.js"
     }
   },
   "peerDependencies": {
