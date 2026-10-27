@@ -85,12 +85,27 @@ describe('F1 comment store + anchors', () => {
   it('counts nested reply trees for collapsed UI', () => {
     const { store, destroy } = make()
     const thread = store.createThread('root')
+    store.reply(thread.id, 'a', thread.messages[0]?.id)
+    const a = store.get(thread.id)?.messages[1]
+    if (!a) throw new Error('missing')
+    store.reply(thread.id, 'b', a.id)
+    const forest = buildMessageForest(store.get(thread.id)?.messages ?? [])
+    expect(forest).toHaveLength(1)
+    expect(countReplyTree(forest[0]?.children ?? [])).toBe(2)
+    destroy()
+  })
+
+  it('shows a thread-level reply as a top-level message, with its own nested replies', () => {
+    const { store, destroy } = make()
+    const thread = store.createThread('root')
     store.reply(thread.id, 'a')
     const a = store.get(thread.id)?.messages[1]
     if (!a) throw new Error('missing')
     store.reply(thread.id, 'b', a.id)
     const forest = buildMessageForest(store.get(thread.id)?.messages ?? [])
-    expect(countReplyTree(forest[0]?.children ?? [])).toBe(2)
+    expect(forest.map((node) => node.message.text)).toEqual(['root', 'a'])
+    expect(countReplyTree(forest[0]?.children ?? [])).toBe(0)
+    expect(countReplyTree(forest[1]?.children ?? [])).toBe(1)
     destroy()
   })
 
