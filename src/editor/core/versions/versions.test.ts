@@ -469,3 +469,16 @@ describe('E3 durable event log (future-collab foundation)', () => {
     reloaded.destroy()
   })
 })
+
+describe('program changes', () => {
+  it('a transaction tagged source=program is classified as a program change', async () => {
+    const { classifyTransaction } = await import('./classify')
+    const { EditorState } = await import('@tiptap/pm/state')
+    const { Schema } = await import('@tiptap/pm/model')
+    const schema = new Schema({ nodes: { doc: { content: 'text*' }, text: {} } })
+    const state = EditorState.create({ schema, doc: schema.node('doc', null, [schema.text('a')]) })
+    const tr = state.tr.insertText('b', 1).setMeta('source', 'program')
+    expect(classifyTransaction(tr)).toEqual({ kind: 'program' })
+    expect(classifyTransaction(state.tr.insertText('b', 1))?.kind).toBe('typing')
+  })
+})

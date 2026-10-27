@@ -51,3 +51,14 @@ export {
   type SearchOptions,
 } from './search'
 export { findOrphanBlobs, referencedBlobIds, removeBlobs } from './blobSweep'
+export {
+  createLocalStorageSettingsStorage,
+  createMemorySettingsStorage,
+  createSettingsStore,
+  DEFAULT_PAGE_SETTINGS,
+  normalizeSettings,
+  type AiReviewMode,
+  type PageSettings,
+  type PageSettingsStore,
+  type SettingsStorage,
+} from './settings'

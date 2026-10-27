@@ -6,6 +6,7 @@ import { PageBanner } from '../src/utils/banner/PageBanner'
 import {
   demoDocumentId,
   demoRegistry,
+  demoSettings,
   loadDemoPage,
   MissingPageError,
   openOlderLocalCopy,
@@ -46,7 +47,7 @@ function Page({
   readonly title: string
   readonly initialContent: JSONContent
 }) {
-  const page = usePageController({ registry, initialContent, documentId })
+  const page = usePageController({ registry, initialContent, documentId, settings: demoSettings })
   // Errors from every status component gather in one fixed stack, so two at once never cover each other.
   const [errorHost, setErrorHost] = useState<HTMLElement | null>(null)
   return (

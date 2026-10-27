@@ -9,6 +9,8 @@ import type { VersionChange } from './types'
  */
 export const classifyTransaction = (tr: Transaction): VersionChange | null => {
   if (!tr.docChanged) return null
+  // A batch applied by the page engine (a program, not a person typing).
+  if (tr.getMeta('source') === 'program') return { kind: 'program' }
   const operationId = tr.getMeta(OPERATION_META) as string | undefined
   if (operationId) return { kind: 'operation', operationId }
   const history = tr.getMeta('history$') as { redo?: boolean } | undefined

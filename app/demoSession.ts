@@ -10,7 +10,10 @@ import {
   createIndexedDbStore,
   createLocalStorageStore,
   type BlobStore,
+  createLocalStorageSettingsStorage,
+  createSettingsStore,
   type PageListRegistry,
+  type PageSettingsStore,
   type PageStore,
 } from '../src/editor/core'
 import type { PersistenceSession } from '../src/plugins/persistence'
@@ -59,7 +62,10 @@ export const setCurrentPageId = (id: string): void => {
 export const demoBlobs: BlobStore = indexedDbStore ? createIndexedDbBlobStore() : createMemoryBlobStore()
 /** The page store every page body lives in. */
 export const demoPages: PageStore = indexedDbStore ?? localStore
+/** Per-page settings (lock, AI review mode), kept beside the page in this browser. */
+export const demoSettings: PageSettingsStore = createSettingsStore(createLocalStorageSettingsStorage())
 export const demoRegistry: PageListRegistry = createPageRegistry({
+  settings: demoSettings,
   storage: indexedDbStore ? createIndexedDbRegistryStorage() : createMemoryRegistryStorage(),
   pages: demoPages,
   blobs: demoBlobs,

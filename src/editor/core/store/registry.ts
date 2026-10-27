@@ -1,5 +1,6 @@
 import type { BlobStore } from './blobStore'
 import type { PageStore } from './types'
+import type { PageSettingsStore } from './settings'
 import { referencedBlobIds } from './blobSweep'
 
 /** One page's place in the tree. The body lives in the PageStore under the same id, nowhere else. */
@@ -76,6 +77,8 @@ export interface RegistryOptions {
   readonly pages: PageStore
   /** When given, `deleteForever` also removes the files of every deleted page. */
   readonly blobs?: BlobStore
+  /** When given, `deleteForever` also forgets each deleted page's settings. */
+  readonly settings?: PageSettingsStore
   readonly now?: () => number
   readonly newId?: () => string
 }
@@ -88,7 +91,7 @@ const defaultId = (): string => 'p' + crypto.randomUUID().replace(/-/g, '').slic
  * atomic storage write and returns an `undo` that restores the previous records.
  */
 export function createPageRegistry(options: RegistryOptions): PageRegistry {
-  const { storage, pages, blobs, now = Date.now, newId = defaultId } = options
+  const { storage, pages, blobs, settings, now = Date.now, newId = defaultId } = options
 
   const load = async () => new Map((await storage.list()).map((record) => [record.id, record]))
   const need = (all: Map<string, PageRecord>, id: string): PageRecord => {
@@ -272,6 +275,7 @@ export function createPageRegistry(options: RegistryOptions): PageRegistry {
       // Bodies first: if one fails the records stay and the page is still in the trash to try again.
       for (const pageId of ids) {
         await pages.remove(pageId)
+        await settings?.remove(pageId)
         if (!blobs) continue
         for (const file of await blobs.list(pageId)) if (!keep.has(file.id)) await blobs.remove(file.id)
       }

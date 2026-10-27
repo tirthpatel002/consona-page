@@ -180,3 +180,96 @@ describe('Markdown edits', () => {
     destroy()
   })
 })
+
+describe('setProps', () => {
+  const run = (
+    engine: ReturnType<typeof make>['engine'],
+    id: string,
+    props: Record<string, string | number | boolean | null>,
+  ) =>
+    engine.edit({
+      baseRevision: engine.revision(),
+      requestId: JSON.stringify([id, props]),
+      steps: [{ op: 'setProps', id, props }],
+    })
+  const codeOf = (r: ReturnType<typeof run>) => (r.ok ? 'ok' : r.errors[0]?.code)
+
+  it('sets plain attributes, keeps the id and the text, one undo step', () => {
+    const { editor, engine, destroy } = make()
+    const id = idOf(engine, 'Title')
+    expect(codeOf(run(engine, id, { level: 3 }))).toBe('ok')
+    expect(editor.getJSON().content?.[0]?.attrs?.level).toBe(3)
+    expect(engine.outline().blocks[0]?.id).toBe(id)
+    expect(engine.read([id])[0]?.text).toBe('Title')
+    destroy()
+  })
+
+  it('refuses unknown attributes, wrong kinds, URL-like names, non-plain values and long strings', () => {
+    const { editor, engine, destroy } = make()
+    const id = idOf(engine, 'Title')
+    const before = JSON.stringify(editor.getJSON())
+    expect(codeOf(run(engine, id, { nope: 1 }))).toBe('not_allowed')
+    expect(codeOf(run(engine, id, { blockId: 'b123456789' }))).toBe('not_allowed')
+    expect(codeOf(run(engine, id, { level: 'big' }))).toBe('invalid_step')
+    expect(codeOf(run(engine, id, {}))).toBe('invalid_step')
+    expect(codeOf(run(engine, id, { language: 'x'.repeat(201) }))).not.toBe('ok')
+    expect(codeOf(run(engine, id, { href: 'javascript:alert(1)' }))).not.toBe('ok')
+    expect(JSON.stringify(editor.getJSON())).toBe(before)
+    destroy()
+  })
+
+  it('refuses a heading level outside 1 to 6 and a non-finite number', () => {
+    const { editor, engine, destroy } = make()
+    const id = idOf(engine, 'Title')
+    const before = JSON.stringify(editor.getJSON())
+    for (const level of [0, 7, 99, 2.5, Number.NaN, Infinity])
+      expect(codeOf(run(engine, id, { level }))).toBe('invalid_step')
+    expect(JSON.stringify(editor.getJSON())).toBe(before)
+    destroy()
+  })
+})
+
+describe('engine undo', () => {
+  it('steps back the last batch as one change, tagged as a program change', () => {
+    const { editor, engine, destroy } = make()
+    const id = idOf(engine, 'beta two')
+    const original = JSON.stringify(editor.getJSON())
+    const metas: unknown[] = []
+    editor.on('transaction', ({ transaction }) => metas.push(transaction.getMeta('source')))
+    engine.edit({
+      baseRevision: engine.revision(),
+      requestId: 'u1',
+      steps: [
+        { op: 'replaceMarkdown', id, text: 'changed' },
+        { op: 'insertMarkdownAfter', id, text: '## Added' },
+      ],
+    })
+    expect(editor.getText()).toContain('Added')
+    const undone = engine.undo()
+    expect(undone.ok).toBe(true)
+    expect(JSON.stringify(editor.getJSON())).toBe(original)
+    expect(metas.filter((m) => m === 'program').length).toBe(2)
+    expect(engine.undo().ok).toBe(false)
+    destroy()
+  })
+
+  it('refuses when the page changed after the batch, and when the page is locked', () => {
+    const { editor, engine, destroy } = make()
+    const id = idOf(engine, 'beta two')
+    engine.edit({ baseRevision: engine.revision(), requestId: 'u2', steps: [{ op: 'replaceMarkdown', id, text: 'x' }] })
+    editor.commands.insertContentAt(1, 'user typed ')
+    const refused = engine.undo()
+    expect(refused.ok).toBe(false)
+    if (!refused.ok) expect(refused.errors[0]?.code).toBe('changed_since')
+    expect(editor.getText()).toContain('user typed')
+    destroy()
+  })
+
+  it('nothing to undo before any batch', () => {
+    const { engine, destroy } = make()
+    const r = engine.undo()
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors[0]?.code).toBe('nothing_to_undo')
+    destroy()
+  })
+})

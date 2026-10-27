@@ -36,6 +36,12 @@ export interface FoundBlock {
 export type Step =
   /** Replaces the text of a text block, or of the single text block inside a list item or table cell. Plain text: marks in the old text are dropped. */
   | { readonly op: 'replaceText'; readonly id: string; readonly text: string }
+  /** Sets plain attributes (a callout's variant, a code block's language, a task's checked state) on a block that is not a file, embed or link. Values are strings, numbers, booleans or null, of the same kind as the attribute's default. */
+  | {
+      readonly op: 'setProps'
+      readonly id: string
+      readonly props: Readonly<Record<string, string | number | boolean | null>>
+    }
   /** Adds a plain paragraph after the block `id` (a top-level block, or a block inside a container that accepts paragraphs there). */
   | { readonly op: 'insertParagraphAfter'; readonly id: string; readonly text: string }
   | { readonly op: 'delete'; readonly id: string }
@@ -65,6 +71,8 @@ export type EditErrorCode =
   | 'invalid_step'
   | 'too_large'
   | 'blocked_url'
+  | 'nothing_to_undo'
+  | 'changed_since'
   | 'needs_markdown'
 
 export interface EditError {
@@ -100,6 +108,8 @@ export interface PageEngine {
   edit(request: EditRequest): EditResult
   /** Current revision of the open page. */
   revision(): string
+  /** Steps back the last batch this handle applied, as one program change. Refused if anything changed the page since. */
+  undo(): EditResult
   /** Compact id-addressed text of the page (or of the named blocks). Needs `markdown` in the options; returns null without it. */
   readCompact(
     options?: Omit<CompactOptions, 'ids'> & { readonly ids?: readonly string[] },
@@ -175,9 +185,30 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
   const cut = (text: string, max: number) => (text.length > max ? text.slice(0, max) : text)
 
   const fail = (...errors: EditError[]): EditResult => ({ ok: false, errors })
+  /** The page just before and just after the last applied batch. Undo only runs while the page is still the "after" one. */
+  let lastBatch: { before: PMNode; after: PMNode } | null = null
 
   return {
     revision: () => snapshot(editor.state.doc),
+
+    undo() {
+      if (!editor.isEditable)
+        return fail({ code: 'locked', message: 'The page is locked, so the engine cannot change it.' })
+      if (!lastBatch) return fail({ code: 'nothing_to_undo', message: 'This handle has no applied batch to undo.' })
+      if (!editor.state.doc.eq(lastBatch.after)) {
+        return fail({
+          code: 'changed_since',
+          message: 'The page changed after that batch, so it cannot be undone without losing those changes.',
+        })
+      }
+      const { before } = lastBatch
+      const tr = editor.state.tr
+      tr.step(new ReplaceStep(0, tr.doc.content.size, new Slice(before.content, 0, 0)))
+      tr.setMeta('source', 'program')
+      editor.view.dispatch(tr)
+      lastBatch = null
+      return { ok: true, revision: snapshot(editor.state.doc), applied: 1, replayed: false }
+    },
 
     readCompact(compactOptions = {}) {
       if (!markdown) return null
@@ -242,6 +273,7 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
         return fail({ code: 'locked', message: 'The page is locked, so the engine cannot change it.' })
       }
       const doc = editor.state.doc
+      snapshot(doc) // the current revision is always a valid base, even for a handle that has only just been made
       const base = snapshots.get(request.baseRevision)
       if (!base) {
         return fail({
@@ -404,6 +436,21 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
               })
             }
           }
+        } else if (step.op === 'setProps') {
+          const problem = propsProblem(live.node, step.props)
+          if (problem) return fail({ code: problem.code, step: index, id: step.id, message: problem.message })
+          const attrs = { ...live.node.attrs, ...step.props }
+          try {
+            tr.setNodeMarkup(live.pos, null, attrs)
+            tr.doc.check()
+          } catch {
+            return fail({
+              code: 'invalid_step',
+              step: index,
+              id: step.id,
+              message: 'Those properties cannot be set on this block.',
+            })
+          }
         } else if (step.op === 'replaceText') {
           const target = live.node.isTextblock
             ? { node: live.node, pos: live.pos }
@@ -484,7 +531,9 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
       }
       if (!tr.docChanged) return finish({ ok: true, revision: snapshot(doc), applied: 0, replayed: false })
       tr.setMeta('source', 'program')
+      const beforeDoc = editor.state.doc
       editor.view.dispatch(tr)
+      lastBatch = { before: beforeDoc, after: editor.state.doc }
       return finish({ ok: true, revision: snapshot(editor.state.doc), applied: request.steps.length, replayed: false })
     },
   }
@@ -500,6 +549,53 @@ function textblockInside(node: PMNode, pos: number): { node: PMNode; pos: number
     }
   })
   return count === 1 ? found : null
+}
+
+const BLOCKED_PROP_KEY = /src|href|url|blob|link|html|script/i
+const MAX_PROP_CHARS = 200
+
+/** Why `props` cannot be set on `node`, or null. Only known attributes, plain values, nothing that holds a URL or a file. */
+function propsProblem(
+  node: PMNode,
+  props: unknown,
+): { code: 'invalid_step' | 'not_allowed' | 'blocked_url' | 'too_large'; message: string } | null {
+  if (typeof props !== 'object' || props === null || Array.isArray(props) || Object.keys(props).length === 0) {
+    return { code: 'invalid_step', message: 'props must be an object with at least one attribute.' }
+  }
+  if (node.type.name === 'media' || node.isText) {
+    return { code: 'not_allowed', message: 'Files and embeds are changed with the media tools, not here.' }
+  }
+  const known = node.type.spec.attrs ?? {}
+  for (const [key, value] of Object.entries(props)) {
+    if (key === 'blockId' || !(key in known)) {
+      return { code: 'not_allowed', message: `"${key}" is not an attribute this block can take.` }
+    }
+    if (BLOCKED_PROP_KEY.test(key)) {
+      return { code: 'blocked_url', message: `"${key}" can hold a URL or file and cannot be set here.` }
+    }
+    const kind = typeof value
+    if (value !== null && kind !== 'string' && kind !== 'number' && kind !== 'boolean') {
+      return { code: 'invalid_step', message: `"${key}" must be a string, number, boolean or null.` }
+    }
+    if (typeof value === 'string' && value.length > MAX_PROP_CHARS) {
+      return { code: 'too_large', message: `"${key}" is longer than ${String(MAX_PROP_CHARS)} characters.` }
+    }
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return { code: 'invalid_step', message: `"${key}" must be a finite number.` }
+    }
+    if (
+      node.type.name === 'heading' &&
+      key === 'level' &&
+      !(Number.isInteger(value) && Number(value) >= 1 && Number(value) <= 6)
+    ) {
+      return { code: 'invalid_step', message: 'A heading level is a whole number from 1 to 6.' }
+    }
+    const fallback = (known[key] as { default?: unknown }).default
+    if (value !== null && fallback !== null && fallback !== undefined && typeof fallback !== kind) {
+      return { code: 'invalid_step', message: `"${key}" must be a ${typeof fallback}.` }
+    }
+  }
+  return null
 }
 
 const INSERTABLE: ReadonlySet<string> = new Set([

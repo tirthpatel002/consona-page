@@ -10,6 +10,7 @@ import { SlashMenu } from './slash/SlashMenu'
 import { SlashStore } from './slash/slashStore'
 import { BlockToolbar } from './toolbar/BlockToolbar'
 import { documentIdentityExtension } from './identity'
+import type { PageSettingsStore } from './store'
 import { VersionStore } from './versions/versionStore'
 import { BubbleToolbar } from './toolbar/BubbleToolbar'
 import './styles/editor.css'
@@ -24,6 +25,12 @@ export interface PageControllerOptions {
    * account/workspace layer exists, namespace the id with it before passing it here.
    */
   readonly documentId: string
+  /**
+   * Where the page lock is kept. With it, a locked page stays locked after a reload and code that works on
+   * a closed page can see the lock. Without it the lock lasts for this session only. If saving the lock
+   * fails, `lockSaveFailed` is true and the lock may not be seen by code working on the closed page.
+   */
+  readonly settings?: PageSettingsStore
 }
 
 /**
@@ -34,6 +41,8 @@ export interface PageController {
   readonly editor: Editor | null
   readonly registry: PageRegistry
   readonly locked: boolean
+  /** True when the last attempt to save the lock to the page settings failed. */
+  readonly lockSaveFailed: boolean
   readonly openPanels: ReadonlySet<string>
   readonly togglePanel: (id: string) => void
   readonly versionStore: VersionStore | null
@@ -41,7 +50,12 @@ export interface PageController {
 }
 
 /** Creates the editor, panel store and version history. The host decides which chrome to render. */
-export function usePageController({ registry, initialContent, documentId }: PageControllerOptions): PageController {
+export function usePageController({
+  registry,
+  initialContent,
+  documentId,
+  settings,
+}: PageControllerOptions): PageController {
   const ui = useMemo(() => ({ slash: new SlashStore(), panels: new PanelStore() }), [])
   const extensions = useMemo(
     () => [...createExtensions(registry, ui), documentIdentityExtension.configure({ documentId })],
@@ -63,20 +77,52 @@ export function usePageController({ registry, initialContent, documentId }: Page
   }, [versionStore])
   const openPanels = useSyncExternalStore(ui.panels.subscribe, ui.panels.getState)
 
+  const [lockSaveFailed, setLockSaveFailed] = useState(false)
   useEffect(() => {
     if (!editor) return
-    const syncLock = () => setLocked(editor.storage.pageLock?.locked ?? false)
-    syncLock()
+    let cancelled = false
+    let saved: boolean | null = null // the lock value last written (or read) from the settings
+    const syncLock = () => {
+      const now = editor.storage.pageLock?.locked ?? false
+      setLocked(now)
+      if (!settings || saved === null || now === saved) return
+      saved = now
+      settings.set(documentId, { locked: now }).then(
+        () => {
+          if (!cancelled) setLockSaveFailed(false)
+        },
+        () => {
+          saved = !now // so the next change, or the next transaction, tries again
+          if (!cancelled) setLockSaveFailed(true)
+        },
+      )
+    }
     editor.on('transaction', syncLock)
+    if (settings) {
+      void settings.get(documentId).then(
+        (value) => {
+          if (cancelled || editor.isDestroyed) return
+          saved = value.locked
+          if (value.locked && !(editor.storage.pageLock?.locked ?? false)) editor.commands.setPageLocked(true)
+          syncLock()
+        },
+        () => {
+          saved = editor.storage.pageLock?.locked ?? false
+          if (!cancelled) setLockSaveFailed(true)
+        },
+      )
+    } else syncLock()
     return () => {
+      cancelled = true
       editor.off('transaction', syncLock)
     }
-  }, [editor])
+  }, [editor, settings, documentId])
 
   return {
     editor,
     registry,
     locked,
+    lockSaveFailed,
     openPanels,
     togglePanel: ui.panels.toggle,
     versionStore,

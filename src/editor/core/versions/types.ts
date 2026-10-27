@@ -1,7 +1,7 @@
 import type { JSONContent } from '@tiptap/core'
 
 /** How one document-changing transaction is classified for version history. */
-export type ChangeKind = 'operation' | 'typing' | 'paste' | 'undo' | 'redo' | 'drop' | 'other'
+export type ChangeKind = 'operation' | 'typing' | 'paste' | 'undo' | 'redo' | 'drop' | 'program' | 'other'
 
 export interface VersionChange {
   readonly kind: ChangeKind
