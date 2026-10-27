@@ -12,6 +12,8 @@ route, plus a toolbar menu ("Export") with file download and Markdown/HTML impor
 
 No new npm dependencies.
 
+HTML export writes text colour and highlight into inline styles only when the value is a plain colour (hex, a colour name, or `rgb()`/`hsl()`). Any other value is left out, so a stored value cannot add attributes or markup to the exported file.
+
 ## Lossy conversions (all tested)
 
 | Feature                                      | Markdown                                                       | Word (.docx)                                                                                             |
