@@ -1,4 +1,4 @@
-import { NodeSelection } from '@tiptap/pm/state'
+import { NodeSelection, type EditorState, type Transaction } from '@tiptap/pm/state'
 import { defineOperation } from '../../editor/core'
 import { MEDIA_NODE, type MediaAlign } from './extensions'
 import {
@@ -11,6 +11,13 @@ import {
   type MediaKind,
   type MediaShape,
 } from './sources'
+
+/** Changes the attributes of the block at `pos` and keeps it selected if it was (a node change would otherwise drop the selection). */
+function changeAttrs(state: EditorState, tr: Transaction, pos: number, attrs: Record<string, unknown>): void {
+  const wasSelected = state.selection instanceof NodeSelection && state.selection.from === pos
+  tr.setNodeMarkup(pos, undefined, attrs)
+  if (wasSelected) tr.setSelection(NodeSelection.create(tr.doc, pos))
+}
 
 /** Attributes a media block can carry besides its source (all optional when inserting). */
 export interface MediaExtras {
@@ -74,7 +81,7 @@ export const setMediaLayout = defineOperation('setMediaLayout', (chain, pos: num
     if (attrs.width === node.attrs.width && attrs.align === node.attrs.align && attrs.full === node.attrs.full) {
       return false
     }
-    if (dispatch) tr.setNodeMarkup(pos, undefined, attrs)
+    if (dispatch) changeAttrs(state, tr, pos, attrs)
     return true
   }),
 )
@@ -89,7 +96,7 @@ export const setMediaSource = defineOperation(
       const nextKind = kind ?? asKind(node.attrs.kind)
       if (!isSafeMediaSrc(nextKind, src)) return false
       if (src === node.attrs.src && nextKind === node.attrs.kind) return false
-      if (dispatch) tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...extras, src, kind: nextKind })
+      if (dispatch) changeAttrs(state, tr, pos, { ...node.attrs, ...extras, src, kind: nextKind })
       return true
     }),
 )
@@ -122,7 +129,7 @@ export const setMediaDetails = defineOperation('setMediaDetails', (chain, pos: n
     if (change.focusY !== undefined) next.focusY = asFocus(change.focusY)
     if (change.name !== undefined) next.name = change.name.slice(0, 200)
     if (Object.keys(next).every((key) => next[key] === node.attrs[key])) return false
-    if (dispatch) tr.setNodeMarkup(pos, undefined, next)
+    if (dispatch) changeAttrs(state, tr, pos, next)
     return true
   }),
 )

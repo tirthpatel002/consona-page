@@ -71,8 +71,12 @@ export const MediaBehavior = Extension.create({
             if (node.type.name !== MEDIA_NODE || !(event.target instanceof Element)) return false
             if (!event.target.closest('.page-media__frame')) return false
             if (event.target.closest('.page-media__resize, a, audio, video, button')) return false
-            if (view.state.selection instanceof NodeSelection && view.state.selection.from === nodePos) return false
+            if (view.state.selection instanceof NodeSelection && view.state.selection.from === nodePos) {
+              view.focus()
+              return true
+            }
             view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)))
+            view.focus()
             return true
           },
           handleKeyDown: (_view, event) => {

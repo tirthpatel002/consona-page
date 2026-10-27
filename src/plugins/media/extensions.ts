@@ -83,14 +83,33 @@ export const Media = Node.create({
   parseHTML() {
     return [{ tag: 'figure[data-type="media"]', contentElement: 'figcaption' }]
   },
-  // A node view only so the React toolbar portal inside the slot is not treated as a document change.
+  // A node view so the React toolbar portal inside the slot is not treated as a document change, and so an
+  // attribute change patches the block in place: the slot, the caption and the toolbar portal stay put.
   addNodeView() {
-    return ({ node, HTMLAttributes }) => {
-      const spec = this.type.spec.toDOM?.(node) ?? ['figure', HTMLAttributes, 0]
-      const { dom, contentDOM } = DOMSerializer.renderSpec(document, spec)
+    return ({ node: initial, HTMLAttributes }) => {
+      let current = initial
+      const render = (node: typeof initial) => {
+        const spec = this.type.spec.toDOM?.(node) ?? ['figure', HTMLAttributes, 0]
+        return DOMSerializer.renderSpec(document, spec)
+      }
+      const { dom, contentDOM } = render(current)
       return {
         dom,
         contentDOM,
+        update: (next) => {
+          if (next.type !== current.type) return false
+          current = next
+          const fresh = render(next).dom as HTMLElement
+          const figure = dom as HTMLElement
+          const keep = [...figure.classList].filter((name) => name.startsWith('ProseMirror-'))
+          for (const attr of [...figure.attributes]) figure.removeAttribute(attr.name)
+          for (const attr of [...fresh.attributes]) figure.setAttribute(attr.name, attr.value)
+          figure.classList.add(...keep)
+          const frame = figure.querySelector('.page-media__frame')
+          const freshFrame = fresh.querySelector('.page-media__frame')
+          if (frame && freshFrame) frame.replaceWith(freshFrame)
+          return true
+        },
         ignoreMutation: (mutation) => {
           if (mutation.type === 'selection') return false
           const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement
