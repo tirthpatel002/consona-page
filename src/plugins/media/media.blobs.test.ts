@@ -114,3 +114,19 @@ describe('media with an injected file store', () => {
     expect(cleaned).not.toContain('"blob":"blob:')
   })
 })
+
+describe('copy and paste inside the same page', () => {
+  it('keeps the blob reference when the block is copied as HTML and parsed back', async () => {
+    const { editor } = setup()
+    const r = await importFile(png())
+    if (!r.ok || !r.blob) throw new Error('store failed')
+    insertMedia.run(editor, 'image', '', undefined, { blob: r.blob })
+    const html = editor.getHTML()
+    expect(html).toContain(`data-blob="${r.blob}"`)
+    const { editor: other } = createTestEditor({
+      plugins: [textPlugin(), createMediaPlugin({ blobs: createMemoryBlobStore(), pageId: () => 'page-1' })],
+      content: html,
+    })
+    expect(media(other).attrs.blob).toBe(r.blob)
+  })
+})

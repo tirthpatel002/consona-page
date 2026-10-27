@@ -524,3 +524,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* A link card has a fixed layout: no resize handles. */
+.tiptap .page-media[data-kind='bookmark'] .page-media__resize {
+  display: none;
+}
