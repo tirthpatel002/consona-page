@@ -14,7 +14,7 @@ const openCommentCount = (editor: Parameters<typeof getCommentStore>[0]): number
 import './comments.css'
 
 /**
- * F1: Notion-style comments, local-first. Text-anchored threads via the comment mark, replies,
+ * F1: Comments, local-first. Text-anchored threads via the comment mark, replies,
  * edit/delete own messages, resolve/reopen archive, orphan-safe anchors. Single local author;
  * no notifications, mentions or presence (no backend).
  */

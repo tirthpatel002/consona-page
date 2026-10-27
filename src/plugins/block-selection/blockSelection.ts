@@ -267,7 +267,7 @@ function copySelection(view: EditorView, event: ClipboardEvent, cut: boolean, ed
 }
 
 /**
- * Whole-block selection (Notion-style): Esc selects the block the caret is in, Shift+Up/Down extends,
+ * Whole-block selection: Esc selects the block the caret is in, Shift+Up/Down extends,
  * arrows move, Backspace/Delete removes, Mod+D duplicates, copy/cut work on the blocks, Enter or Esc returns to
  * editing. With the mouse: drag on the page background (marquee) or Shift+click a block grip. Dragging a grip
  * inside the selection moves every selected block (through the core's drag-range storage hook).

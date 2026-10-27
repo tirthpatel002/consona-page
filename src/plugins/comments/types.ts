@@ -1,4 +1,4 @@
-/** F1 comments (local-first, Notion-style). Single local author: "You". No notifications,
+/** F1 comments (local-first). Single local author: "You". No notifications,
  *  mentions or presence - those need a backend this app does not have. */
 export const COMMENT_AUTHOR = 'You'
 
