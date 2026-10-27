@@ -154,7 +154,7 @@ export class VersionStore {
     if (!alreadySaved) this.snapshot('auto', undefined, { force: true })
     this.suppressSnapshot = true
     try {
-      this.editor.commands.setContent(target.doc, { emitUpdate: false })
+      this.editor.commands.setContent(target.doc, { emitUpdate: true })
     } finally {
       this.suppressSnapshot = false
     }

@@ -155,4 +155,7 @@ export const convertPartialSelectionToSpec = defineOperation(
 )
 
 /** Replaces the whole document with a saved version (E3 restore). One undo step. */
-export const restoreVersion = defineOperation('restoreVersion', (chain, doc: JSONContent) => chain.setContent(doc))
+export const restoreVersion = defineOperation('restoreVersion', (chain, doc: JSONContent) =>
+  // Emit the update so listeners (autosave, comments) see the restored document, not only the screen.
+  chain.setContent(doc, { emitUpdate: true }),
+)
