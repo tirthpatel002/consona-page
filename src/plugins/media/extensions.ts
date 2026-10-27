@@ -137,21 +137,25 @@ export const Media = Node.create({
         for (const el of (dom as HTMLElement).querySelectorAll<HTMLImageElement>('img, video, audio')) {
           const frame = el.closest('.page-media__frame')
           el.addEventListener('error', () => frame?.setAttribute('data-broken', ''), { once: true })
-          if (el instanceof HTMLImageElement && el.getAttribute('src') && el.complete && el.naturalWidth === 0) {
+          if (
+            el.localName === 'img' &&
+            el.getAttribute('src') &&
+            (el as HTMLImageElement).complete &&
+            (el as HTMLImageElement).naturalWidth === 0
+          ) {
             frame?.setAttribute('data-broken', '')
           }
         }
       }
       watch()
-      setTimeout(watch, 300)
-      setTimeout(watch, 1500)
-      dom.addEventListener('error', (event) => mark(event, true), true)
+      const watchTimers = [setTimeout(watch, 300), setTimeout(watch, 1500)]
       dom.addEventListener('load', (event) => mark(event, false), true)
       dom.addEventListener('loadeddata', (event) => mark(event, false), true)
       return {
         dom,
         contentDOM,
         destroy: () => {
+          for (const timer of watchTimers) clearTimeout(timer)
           if (heldRef) releaseBlobUrl(heldRef)
           heldRef = ''
         },
