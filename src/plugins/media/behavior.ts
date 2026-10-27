@@ -114,9 +114,21 @@ export const MediaBehavior = Extension.create({
           if (!blobs || !pageId) return {}
           const adopter = createBlobAdopter(editor, blobs, pageId, mediaWarning)
           adopter.scan()
+          let editable = editor.isEditable
+          const onFocus = () => adopter.retry()
+          editor.on('focus', onFocus)
           return {
-            update: (_view, prev) => (prev.doc !== editor.state.doc ? adopter.scan() : undefined),
-            destroy: adopter.destroy,
+            update: (_view, prev) => {
+              // An unlock re-checks everything the locked page skipped.
+              if (editor.isEditable !== editable) {
+                editable = editor.isEditable
+                adopter.retry()
+              } else if (prev.doc !== editor.state.doc) adopter.scan()
+            },
+            destroy: () => {
+              editor.off('focus', onFocus)
+              adopter.destroy()
+            },
           }
         },
       }),

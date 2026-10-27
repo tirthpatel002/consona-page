@@ -61,7 +61,7 @@ export function createBlobAdopter(
     } catch {
       failed.add(oldRef)
       warn(
-        'A file in this page could not be saved to this page, so its copy was not saved. It still shows from the original.',
+        'A file in this page could not be saved to this page, so its copy was not saved. It still shows from the original, and saving is tried again when you click back into the page.',
       )
     }
   }
@@ -86,6 +86,11 @@ export function createBlobAdopter(
 
   return {
     scan: () => void scan(),
+    /** A new attempt for files whose copy failed (focus, unlock, or the user fixing space). */
+    retry: () => {
+      failed.clear()
+      void scan()
+    },
     destroy: () => {
       destroyed = true
     },

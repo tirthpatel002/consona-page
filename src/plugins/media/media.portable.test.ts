@@ -120,6 +120,11 @@ describe('cross-page adoption', () => {
     expect(mediaAttrs(editor)[0]?.blob).toBe(ref)
     expect(warnings).toHaveLength(1)
     expect((await blobs.get(src.id))?.pageId).toBe('page-a')
+    // Space is freed (or the user clicks back in): the retry saves the copy and rewrites the ref.
+    blobs.put = real.put
+    adopter.retry()
+    await flush()
+    expect(mediaAttrs(editor)[0]?.blob).not.toBe(ref)
     adopter.destroy()
   })
 
@@ -138,5 +143,18 @@ describe('cross-page adoption', () => {
     editor.commands.deleteRange({ from: 0, to: 1 })
     await flush()
     expect((await blobs.list('page-b')).length).toBe(1)
+  })
+
+  it('skips while read-only and adopts when the page becomes editable again', async () => {
+    const { blobs, editor, ref } = await two()
+    editor.setEditable(false)
+    await flush()
+    editor.commands.insertContentAt(0, { type: 'media', attrs: { kind: 'image', src: '', blob: ref } })
+    await flush()
+    editor.setEditable(true)
+    await flush()
+    await flush()
+    expect(mediaAttrs(editor).every((a) => a.blob !== ref)).toBe(true)
+    expect((await blobs.list('page-b')).length).toBeGreaterThan(0)
   })
 })
