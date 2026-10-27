@@ -73,3 +73,22 @@ describe('IndexedDB legacy import', () => {
     expect(await store.get('bad')).toBeNull()
   })
 })
+
+describe('IndexedDB change feed across tabs', () => {
+  it('tells a second connection to the same database about writes and removals, once each', async () => {
+    const a = createIndexedDbStore({ name: 'feed-test' })
+    const b = createIndexedDbStore({ name: 'feed-test' })
+    const heard: unknown[] = []
+    b.subscribe?.((change) => heard.push(change))
+    const own: unknown[] = []
+    a.subscribe?.((change) => own.push(change))
+    await a.put('p', doc('x'))
+    await a.remove('p')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(heard).toEqual([
+      { id: 'p', revision: 1 },
+      { id: 'p', revision: null },
+    ])
+    expect(own).toEqual(heard)
+  })
+})

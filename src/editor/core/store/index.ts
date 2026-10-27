@@ -1,6 +1,7 @@
 export { StaleRevisionError } from './types'
-export type { PageStore, PageSummary, PutOptions, StoredPage } from './types'
+export type { PageChange, PageStore, PageSummary, PutOptions, StoredPage } from './types'
 export { createMemoryStore } from './memoryStore'
 export { createLocalStorageStore } from './localStorageStore'
 export { createIndexedDbStore, SCHEMA_VERSION, type IndexedDbStoreOptions } from './indexedDbStore'
 export { FORMAT_VERSION, isQuotaError, migrateStoredPage, StorageQuotaError, UnsupportedFormatError } from './format'
+export { createChangeFeed, type ChangeFeed } from './changeFeed'

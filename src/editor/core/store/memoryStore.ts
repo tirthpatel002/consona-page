@@ -1,4 +1,5 @@
 import type { JsonObject } from '../json'
+import { createChangeFeed } from './changeFeed'
 import { FORMAT_VERSION } from './format'
 import { StaleRevisionError, type PageStore, type PageSummary, type PutOptions, type StoredPage } from './types'
 
@@ -12,7 +13,9 @@ export function assertRevision(id: string, current: StoredPage | null | undefine
 /** In-memory adapter: for tests, previews and hosts that persist elsewhere. */
 export function createMemoryStore(now: () => number = Date.now): PageStore {
   const pages = new Map<string, StoredPage>()
+  const feed = createChangeFeed()
   return {
+    subscribe: feed.subscribe,
     get: (id) => Promise.resolve(pages.get(id) ?? null),
     put(id: string, doc: JsonObject, options?: PutOptions) {
       try {
@@ -26,6 +29,7 @@ export function createMemoryStore(now: () => number = Date.now): PageStore {
           updatedAt: now(),
         }
         pages.set(id, next)
+        feed.publish({ id, revision: next.revision })
         return Promise.resolve(next)
       } catch (error) {
         return Promise.reject(error instanceof Error ? error : new Error(String(error)))
@@ -33,6 +37,7 @@ export function createMemoryStore(now: () => number = Date.now): PageStore {
     },
     remove: (id) => {
       pages.delete(id)
+      feed.publish({ id, revision: null })
       return Promise.resolve()
     },
     list: () =>

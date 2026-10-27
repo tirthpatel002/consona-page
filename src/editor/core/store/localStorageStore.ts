@@ -1,4 +1,5 @@
 import type { JsonObject } from '../json'
+import { createChangeFeed } from './changeFeed'
 import { asStorageError, FORMAT_VERSION, migrateStoredPage } from './format'
 import { assertRevision } from './memoryStore'
 import type { PageStore, PageSummary, PutOptions, StoredPage } from './types'
@@ -33,6 +34,7 @@ export function createLocalStorageStore(now: () => number = Date.now): PageStore
       return null
     }
   }
+  const feed = createChangeFeed('page-store:localStorage')
   const run = <T>(fn: () => T): Promise<T> => {
     try {
       return Promise.resolve(fn())
@@ -41,6 +43,7 @@ export function createLocalStorageStore(now: () => number = Date.now): PageStore
     }
   }
   return {
+    subscribe: feed.subscribe,
     get: (id) => run(() => read(id)),
     put: (id: string, doc: JsonObject, options?: PutOptions) =>
       run(() => {
@@ -72,6 +75,7 @@ export function createLocalStorageStore(now: () => number = Date.now): PageStore
           }
           throw error
         }
+        feed.publish({ id, revision: next.revision })
         return next
       }),
     remove: (id) =>
@@ -79,6 +83,7 @@ export function createLocalStorageStore(now: () => number = Date.now): PageStore
         localStorage.removeItem(PREFIX + id)
         localStorage.removeItem(REV_PREFIX + id)
         localStorage.removeItem(FORMAT_PREFIX + id)
+        feed.publish({ id, revision: null })
       }),
     list: () =>
       run(() => {

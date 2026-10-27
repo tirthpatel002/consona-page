@@ -37,6 +37,12 @@ export class StaleRevisionError extends Error {
   }
 }
 
+/** A page was written (`revision` is the new revision) or removed (`revision` is null). */
+export interface PageChange {
+  readonly id: string
+  readonly revision: number | null
+}
+
 /**
  * Storage adapter for pages, keyed by stable id. Implementations must make `put` atomic with its
  * revision check, and must reject (not swallow) a failed write so callers can show it.
@@ -46,4 +52,9 @@ export interface PageStore {
   put(id: string, doc: JsonObject, options?: PutOptions): Promise<StoredPage>
   remove(id: string): Promise<void>
   list(): Promise<readonly PageSummary[]>
+  /**
+   * Optional. Calls `listener` after a successful write or removal, including writes from other tabs when
+   * the adapter can see them. Returns an unsubscribe function.
+   */
+  subscribe?(listener: (change: PageChange) => void): () => void
 }

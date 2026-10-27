@@ -1,4 +1,5 @@
 import type { JsonObject } from '../json'
+import { createChangeFeed } from './changeFeed'
 import { asStorageError, FORMAT_VERSION, migrateStoredPage } from './format'
 import { assertRevision } from './memoryStore'
 import type { PageStore, PageSummary, PutOptions, StoredPage } from './types'
@@ -49,6 +50,7 @@ function readLegacy(id: string): JsonObject | null {
 export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageStore {
   const { name = 'page-store', now = Date.now, migrateLegacyLocalStorage = false } = options
   let opened: Promise<IDBDatabase> | null = null
+  const feed = createChangeFeed(`page-store:${name}`)
   const open = (): Promise<IDBDatabase> => {
     opened ??= new Promise<IDBDatabase>((resolve, reject) => {
       const req = indexedDB.open(name, SCHEMA_VERSION)
@@ -89,10 +91,12 @@ export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageS
     } catch (error) {
       throw asStorageError(error)
     }
+    feed.publish({ id, revision: next.revision })
     return next
   }
 
   return {
+    subscribe: feed.subscribe,
     async get(id) {
       const db = await open()
       const found = (await request(db.transaction(STORE).objectStore(STORE).get(id))) as StoredPage | undefined
@@ -109,6 +113,7 @@ export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageS
       const tx = db.transaction(STORE, 'readwrite')
       tx.objectStore(STORE).delete(id)
       await done(tx)
+      feed.publish({ id, revision: null })
     },
     async list() {
       const db = await open()

@@ -16,3 +16,11 @@ Every stored page carries `format` (current: `FORMAT_VERSION`, 1). A record with
 A write the browser refuses for lack of room rejects with `StorageQuotaError` (the browser reports it under different names; `isQuotaError` covers the known ones). The localStorage adapter puts the old body, revision and format back if a write fails half way. The saved copy stays as it was, the status line says there is no room, and Try again saves once there is room.
 
 Checked only with simulated failures (a stubbed quota error in jsdom and fake-indexeddb). No real quota-exceeded run in a browser has been done. Only format 0 and 1 exist, so the upgrade chain has one step.
+
+## Changes from other tabs
+
+`PageStore.subscribe(listener)` (optional) reports each successful write or removal as `{ id, revision }` (`revision` is null for a removal). The IndexedDB adapter also tells other tabs on the same origin through BroadcastChannel (`page-store:<database name>`); BroadcastChannel never delivers to the sender. localStorage and memory adapters notify listeners in the same tab only, so another tab is not told and finds out at its next save.
+
+The demo editor uses it like this: with nothing unsaved in this tab, another tab's newer copy is shown ("Updated from another tab") and saving continues on top of it. With unsaved edits here, nothing is replaced and the conflict (download, explicit discard) appears at once instead of at the next failed save. A page removed in another tab is also a conflict, never a silent empty page. This tab's own saves, and saves from other editors sharing its session, are ignored. Undo after a live update can step back into content from before it; that is a normal edit and saves on top.
+
+Checked in real desktop Chrome with two tabs (idle tab updated, edit on top without conflict, other tab then updated, unsaved-edit conflict). The conflict case there used a direct write plus a hand-posted broadcast message rather than a second editor typing within the 500 ms save window. A tab in the background may receive the message late. Not checked: other browsers, Safari without BroadcastChannel, three or more tabs.

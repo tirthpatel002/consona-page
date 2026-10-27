@@ -42,6 +42,8 @@ export interface PersistenceSession {
   store: PageStore
   /** Revision of the loaded page, `null` when the page did not exist, `undefined` when unknown (no check). */
   revision: number | null | undefined
+  /** Saves in flight from this tab (editors sharing the session, e.g. a remounted one). Set by the persistence extension. */
+  writing?: number
 }
 
 export interface DocPersistenceStorage {
@@ -118,18 +120,21 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
         const doc = pending
         pending = null
         inFlight = true
+        session.writing = (session.writing ?? 0) + 1
         const documentId = editor.storage.documentIdentity?.documentId ?? 'default'
         set('saving')
         const options = session.revision === undefined ? undefined : { expectedRevision: session.revision }
         session.store
           .put(documentId, doc.toJSON() as JsonObject, options)
           .then((saved) => {
+            session.writing = Math.max(0, (session.writing ?? 1) - 1)
             if (session.revision !== undefined) session.revision = saved.revision
             inFlight = false
             if (pending) flush()
             else set('saved')
           })
           .catch((error: unknown) => {
+            if (inFlight) session.writing = Math.max(0, (session.writing ?? 1) - 1)
             inFlight = false
             if (error instanceof StaleRevisionError) {
               stopped = true
@@ -169,8 +174,10 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
         flush()
       }
 
+      // True while another tab's copy is being put into the editor: that is not an edit made here.
+      let showingRemote = false
       const onUpdate = () => {
-        if (stopped) return
+        if (stopped || showingRemote) return
         pending = editor.state.doc
         if (timer) clearTimeout(timer)
         timer = setTimeout(flush, SAVE_DEBOUNCE_MS)
@@ -187,11 +194,55 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
         if (!unloadAllowed && (storage.status === 'error' || storage.status === 'conflict')) event.preventDefault()
       }
       window.addEventListener('beforeunload', onBeforeUnload)
+      // Another tab saved or removed this page. With nothing unsaved here the new copy is shown; with unsaved
+      // edits here nothing is replaced and the conflict is reported now, not at the next failed save.
+      let applying = false
+      const idNow = () => editor.storage.documentIdentity?.documentId ?? 'default'
+      const unsubscribe = session.store.subscribe?.((change) => {
+        if (change.id !== idNow() || stopped || inFlight || applying || (session.writing ?? 0) > 0) return
+        if (change.revision !== null && session.revision !== undefined && change.revision <= (session.revision ?? 0))
+          return
+        if (change.revision === null || pending || timer) {
+          stopped = true
+          pending = null
+          if (timer) clearTimeout(timer)
+          timer = null
+          set(
+            'conflict',
+            change.revision === null
+              ? 'This page was removed in another tab. Download your version to keep what is on screen.'
+              : 'This page changed in another tab while you had unsaved edits here. Download your version before reloading: edits made here since then are not saved.',
+          )
+          return
+        }
+        applying = true
+        void session.store
+          .get(idNow())
+          .then((latest) => {
+            if (!latest || stopped || pending || timer || editor.isDestroyed) return
+            if (session.revision !== undefined && latest.revision <= (session.revision ?? 0)) return
+            showingRemote = true
+            try {
+              editor.commands.setContent(latest.doc as JSONContent, { emitUpdate: false })
+            } finally {
+              showingRemote = false
+            }
+            session.revision = latest.revision
+            set('saved', 'Updated from another tab')
+          })
+          .catch(() => {
+            set('error', 'Another tab saved this page, but its copy could not be read here. Reload to see it.')
+          })
+          .finally(() => {
+            applying = false
+          })
+      })
       editor.on('update', onUpdate)
       window.addEventListener('pagehide', flush)
       document.addEventListener('visibilitychange', onVisibility)
       editor.on('destroy', () => {
         flush()
+        unsubscribe?.()
         editor.off('update', onUpdate)
         window.removeEventListener('pagehide', flush)
         window.removeEventListener('beforeunload', onBeforeUnload)
@@ -215,6 +266,7 @@ function ResetPopover({ editor, session }: { readonly editor: Editor; readonly s
           type="button"
           className="is-danger"
           onClick={() => {
+            editor.storage.docPersistence.allowUnload?.() // this tab's own removal is not a conflict
             void session.store
               .remove(editor.storage.documentIdentity?.documentId ?? 'default')
               .then(() => window.location.reload())

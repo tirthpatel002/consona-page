@@ -22,7 +22,7 @@ export function SaveStatus({ editor }: { readonly editor: Editor }) {
   if (status === 'conflict') return <Conflict editor={editor} message={message} />
   return (
     <div className="save-status" role="status" aria-live="polite">
-      {LABELS[status]}
+      {message || LABELS[status]}
     </div>
   )
 }
