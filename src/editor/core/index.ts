@@ -2,6 +2,7 @@
 export type { JsonObject, JsonPrimitive, JsonValue } from './json'
 export { isJsonObject, toJsonObject } from './json'
 export { isSafeUrl } from './safeUrl'
+export * from './store'
 export type {
   BlockAction,
   BlockActionContext,
