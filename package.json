@@ -62,9 +62,6 @@
     "react-dom": "^19.3.1"
   },
   "description": "A composable block editor with typed programmatic editing and storage adapters",
-  "engines": {
-    "node": ">=22.22.2"
-  },
   "files": [
     "dist/library",
     "docs",
