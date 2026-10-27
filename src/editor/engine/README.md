@@ -24,7 +24,7 @@ no DOM code of its own; the editor it is given does.
 
 ## Not done
 
-- Compact markdown text with directives, marks inside replaced text (replaced text is plain, so old marks in it are dropped), move steps, props edits for non-text blocks, closed-page edits on the store copy, `engine.undo`, and a persisted request-id log. Idempotency and revision memory are lost when the handle is dropped.
+- Marks inside `replaceText` (use `replaceMarkdown`), directive text that can be WRITTEN (directives are read-only), props edits for non-text blocks, props edits for non-text blocks, closed-page edits on the store copy, `engine.undo`, and a persisted request-id log. Idempotency and revision memory are lost when the handle is dropped.
 - A revision is a hash of the page JSON. A collision would need a different page with the same 32-bit hash; the stale check on touched blocks uses the same kind of hash. This is acceptable for catching accidental conflicts, not for security.
 - Searching across pages is not part of this slice.
 
@@ -35,3 +35,13 @@ blocks count as touched for the stale check. It is refused (`cycle`) when `after
 and (`not_allowed`) when the new place cannot hold that block type or leaving the old place would make its
 parent invalid; the block is never wrapped or converted to fit. It is one transaction and one undo step with
 the rest of the batch.
+
+## Compact text
+
+Pass a `markdown` converter in the options (`{ parseInline, parseBlocks, inlineToMarkdown }`; the demo wires the export plugin's). The engine does not import plugins.
+
+- `readCompact({ ids?, maxChars?, maxLines? })` returns `{ text, lines, truncated, revision }`, one line per block in page order, two spaces of indent per nesting level: `[b3] ## Title`, `[b4] alpha **one**`, `  [b7] - item`. A list item, heading or task item gets its Markdown prefix. Any other block is a directive line, `[b9] ::type{attr=json} text`, listing only attributes that differ from the block type's defaults. The directive set comes from the schema, so a new block type needs no code. A newline inside a block's text is written `\n`, a backslash `\\`. Attribute values are cut at 120 characters. Directives are read only: there is no step that writes one.
+- `replaceMarkdown { id, text }` replaces a text block's content from inline Markdown and keeps bold, italic, strike, underline, code and links. Code blocks take the text as is. Links must pass the same URL allowlist as the editor, otherwise `blocked_url` and nothing changes. HTML in the text stays literal text.
+- `insertMarkdownAfter { id, text }` adds the blocks of a Markdown text after a block: paragraphs, headings, bullet, numbered and task lists, quotes, code, rules and tables. Anything else the parser produces (such as an image) is refused with `not_allowed`; ids in parsed text are dropped and fresh ones are assigned. At most 200 blocks per step (`too_large`).
+- Both need the converter; without one they fail with `needs_markdown` and `readCompact` returns `null`.
+- Not measured: token savings against raw JSON. No claim is made.

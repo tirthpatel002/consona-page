@@ -1,7 +1,8 @@
 import type { Editor } from '@tiptap/core'
 import { Fragment, Slice, type Node as PMNode } from '@tiptap/pm/model'
 import { ReplaceStep } from '@tiptap/pm/transform'
-import { isBlockId } from '../core'
+import { isBlockId, isSafeUrl } from '../core'
+import { toCompact, type CompactOptions, type CompactText, type JsonNode, type MarkdownCodec } from './compact'
 
 /** Every block addressed by the engine has a `blockId` (see core/blockId.ts). */
 export interface OutlineEntry {
@@ -40,6 +41,10 @@ export type Step =
   | { readonly op: 'delete'; readonly id: string }
   /** Moves the block `id` (with its content and ids) to directly after the block `after`. Refused when the new place cannot hold it, or `after` is inside `id`. */
   | { readonly op: 'moveAfter'; readonly id: string; readonly after: string }
+  /** Replaces the text of a text block (or a container's single text block) from inline Markdown, keeping bold, italic, links and the like. Needs `markdown` in the options. Links are checked against the URL allowlist. */
+  | { readonly op: 'replaceMarkdown'; readonly id: string; readonly text: string }
+  /** Adds the blocks of a Markdown text after the block `id`: paragraphs, headings, lists, quotes, code, rules and tables only. Needs `markdown` in the options. */
+  | { readonly op: 'insertMarkdownAfter'; readonly id: string; readonly text: string }
 
 export interface EditRequest {
   /** Revision the caller read. The edit is refused if a block it touches changed since. */
@@ -59,6 +64,8 @@ export type EditErrorCode =
   | 'cycle'
   | 'invalid_step'
   | 'too_large'
+  | 'blocked_url'
+  | 'needs_markdown'
 
 export interface EditError {
   readonly code: EditErrorCode
@@ -80,6 +87,10 @@ export interface PageEngineOptions {
   readonly maxTextChars?: number
   /** How many past revisions are remembered for stale checks. Default 20. */
   readonly keepRevisions?: number
+  /** Markdown converter, needed for `replaceMarkdown`, `insertMarkdownAfter` and `readCompact`. */
+  readonly markdown?: MarkdownCodec
+  /** Most blocks one `insertMarkdownAfter` may add. Default 200. */
+  readonly maxInsertBlocks?: number
 }
 
 export interface PageEngine {
@@ -89,6 +100,10 @@ export interface PageEngine {
   edit(request: EditRequest): EditResult
   /** Current revision of the open page. */
   revision(): string
+  /** Compact id-addressed text of the page (or of the named blocks). Needs `markdown` in the options; returns null without it. */
+  readCompact(
+    options?: Omit<CompactOptions, 'ids'> & { readonly ids?: readonly string[] },
+  ): (CompactText & { readonly revision: string }) | null
 }
 
 interface BlockInfo {
@@ -141,7 +156,7 @@ const revisionOf = (doc: PMNode): string => 'r' + hash(JSON.stringify(doc.toJSON
  * There is no raw JSON write method.
  */
 export function createPageEngine(options: PageEngineOptions): PageEngine {
-  const { editor, maxTextChars = 20_000, keepRevisions = 20 } = options
+  const { editor, maxTextChars = 20_000, keepRevisions = 20, markdown, maxInsertBlocks = 200 } = options
   const snapshots = new Map<string, ReadonlyMap<string, string>>()
   const results = new Map<string, EditResult>()
 
@@ -163,6 +178,14 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
 
   return {
     revision: () => snapshot(editor.state.doc),
+
+    readCompact(compactOptions = {}) {
+      if (!markdown) return null
+      const doc = editor.state.doc
+      const revision = snapshot(doc)
+      const { ids, ...rest } = compactOptions
+      return { ...toCompact(doc, markdown, { ...rest, ...(ids ? { ids: new Set(ids) } : {}) }), revision }
+    },
 
     outline({ maxChars = 80 } = {}) {
       const doc = editor.state.doc
@@ -283,7 +306,10 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
           })
         }
         if (
-          (step.op === 'replaceText' || step.op === 'insertParagraphAfter') &&
+          (step.op === 'replaceText' ||
+            step.op === 'insertParagraphAfter' ||
+            step.op === 'replaceMarkdown' ||
+            step.op === 'insertMarkdownAfter') &&
           (typeof step.text !== 'string' || step.text.length > maxTextChars)
         ) {
           return fail({
@@ -293,7 +319,92 @@ export function createPageEngine(options: PageEngineOptions): PageEngine {
             message: 'Step text must be a string of at most ' + String(maxTextChars) + ' characters.',
           })
         }
-        if (step.op === 'replaceText') {
+        if (step.op === 'replaceMarkdown' || step.op === 'insertMarkdownAfter') {
+          if (!markdown) {
+            return fail({
+              code: 'needs_markdown',
+              step: index,
+              id: step.id,
+              message: 'This engine was created without a Markdown converter.',
+            })
+          }
+          if (step.op === 'replaceMarkdown') {
+            const target = live.node.isTextblock
+              ? { node: live.node, pos: live.pos }
+              : textblockInside(live.node, live.pos)
+            if (!target) {
+              return fail({
+                code: 'not_text_target',
+                step: index,
+                id: step.id,
+                message: 'This block has no single text block to replace.',
+              })
+            }
+            const raw = target.node.type.spec.code
+              ? [{ type: 'text', text: step.text }]
+              : markdown.parseInline(step.text)
+            if (hasUnsafeLink(raw)) {
+              return fail({
+                code: 'blocked_url',
+                step: index,
+                id: step.id,
+                message: 'A link in this text is not allowed.',
+              })
+            }
+            try {
+              const nodes = raw.map((n) =>
+                n.type === 'hardBreak' ? schema.nodes.hardBreak?.create() : schema.nodeFromJSON(n),
+              )
+              const fragment = Fragment.fromArray(nodes.filter((n): n is PMNode => n !== undefined))
+              if (!target.node.type.validContent(fragment)) throw new Error('invalid')
+              const from = target.pos + 1
+              const to = target.pos + target.node.nodeSize - 1
+              tr.step(new ReplaceStep(from, to, new Slice(fragment, 0, 0)))
+              tr.doc.check()
+            } catch {
+              return fail({
+                code: 'invalid_step',
+                step: index,
+                id: step.id,
+                message: 'This text cannot go in that block.',
+              })
+            }
+          } else {
+            const blocks = markdown.parseBlocks(step.text)
+            if (blocks.length === 0 || blocks.length > maxInsertBlocks) {
+              return fail({
+                code: blocks.length === 0 ? 'invalid_step' : 'too_large',
+                step: index,
+                id: step.id,
+                message: 'The text must hold between 1 and ' + String(maxInsertBlocks) + ' blocks.',
+              })
+            }
+            if (hasUnsafeLink(blocks) || !blocks.every(allowedInserted)) {
+              return fail({
+                code: blocks.every(allowedInserted) ? 'blocked_url' : 'not_allowed',
+                step: index,
+                id: step.id,
+                message: blocks.every(allowedInserted)
+                  ? 'A link in this text is not allowed.'
+                  : 'Only paragraphs, headings, lists, quotes, code, rules and tables can be inserted from text.',
+              })
+            }
+            const after = live.pos + live.node.nodeSize
+            try {
+              const nodes = blocks.map((b) => schema.nodeFromJSON(stripIds(b)))
+              nodes.forEach((n) => n.check())
+              tr.step(new ReplaceStep(after, after, new Slice(Fragment.fromArray(nodes), 0, 0)))
+              tr.doc.check()
+            } catch {
+              return fail({
+                code: 'not_allowed',
+                step: index,
+                id: step.id,
+                message: 'Those blocks cannot go after this block.',
+              })
+            }
+          }
+        } else if (step.op === 'replaceText') {
           const target = live.node.isTextblock
             ? { node: live.node, pos: live.pos }
             : textblockInside(live.node, live.pos)
@@ -389,4 +500,37 @@ function textblockInside(node: PMNode, pos: number): { node: PMNode; pos: number
     }
   })
   return count === 1 ? found : null
+}
+
+const INSERTABLE: ReadonlySet<string> = new Set([
+  'paragraph',
+  'heading',
+  'bulletList',
+  'orderedList',
+  'taskList',
+  'blockquote',
+  'codeBlock',
+  'horizontalRule',
+  'table',
+])
+const allowedInserted = (node: JsonNode): boolean => INSERTABLE.has(node.type)
+
+/** True when any link mark in the tree has a URL the editor would not keep. */
+function hasUnsafeLink(nodes: readonly JsonNode[]): boolean {
+  return nodes.some(
+    (node) =>
+      (node.marks ?? []).some((mark) => mark.type === 'link' && !isSafeUrl(String(mark.attrs?.href ?? ''))) ||
+      hasUnsafeLink(node.content ?? []),
+  )
+}
+
+/** Parsed text never brings its own ids; the editor assigns fresh ones. */
+function stripIds(node: JsonNode): JsonNode {
+  const { blockId: _drop, ...attrs } = (node.attrs ?? {}) as Record<string, unknown>
+  void _drop
+  return {
+    ...node,
+    ...(node.attrs ? { attrs } : {}),
+    ...(node.content ? { content: node.content.map(stripIds) } : {}),
+  }
 }

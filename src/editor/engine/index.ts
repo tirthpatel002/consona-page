@@ -12,3 +12,4 @@ export {
   type PageEngineOptions,
   type Step,
 } from './engine'
+export { toCompact, type CompactOptions, type CompactText, type JsonNode, type MarkdownCodec } from './compact'
