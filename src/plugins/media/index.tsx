@@ -90,3 +90,4 @@ export function createMediaPlugin(host: MediaHost = {}): PagePlugin {
   setMediaHost(host)
   return buildPlugin()
 }
+export { migrateInlineMedia, type MigrationKept, type MigrationResult } from './migrate'

@@ -81,3 +81,11 @@ demo does not run a sweep yet and no UI offers one; deleting a page for good alr
 Delete forever and copied blocks: files that a remaining page's body still refers to are kept when a page is deleted
 for good, so a block copied out of it does not lose its file before the copy is adopted. If a remaining body cannot
 be read, nothing is deleted. A kept file stays under the deleted page's id until adoption or a sweep handles it.
+
+## Old inline files
+
+`migrateInlineMedia(doc, blobs, pageId)` (media plugin) moves data-URL images, video, audio and files of an existing
+page into the file store and returns the new document, how many were moved, and the blocks it left inline with a
+reason (`limit`, `type`, `unreadable`, `store_failed`). It does not write the page, never drops a block, and is safe
+to run twice. The demo does not call it yet: a host decides when to run it and saves the result itself, so a page is
+never rewritten silently. Not checked in a browser.
