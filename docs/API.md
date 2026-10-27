@@ -16,6 +16,14 @@ internal paths are not a supported import surface. A future public name/version/
 | `page/plugins/<name>` | Individual feature plugins                                                      | Browser/client                                         |
 | `page/styles.css`     | Core and built-in styles                                                        | Import once in host                                    |
 
+Additional feature entries:
+
+| Import                     | Purpose                                                                         | Runtime boundary                                        |
+| -------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `page/ai-controller`       | `createAiReviewController`, `createMockAiProvider`, provider/review types       | No React or DOM; host supplies engine/settings/provider |
+| `page/plugins/ai-review`   | Controller exports and `captureAiTargets`                                       | Browser/editor selection capture, React-bearing         |
+| `page/blocks/page-preview` | `PagePreview`, `ChildPagePreviews`, `createPagePreviewPlugin`, host/props types | Browser/client React                                    |
+
 Plugin names: `text`, `lists`, `columns`, `block-actions`, `block-selection`, `formatting`, `comments`, `emoji`,
 `export`, `media`, `persistence`, `props-editor`, `json-view`. The AI review entry is listed separately above because selection capture pulls in browser editor code.
 Application dialogs and Page Settings UI are not library exports; hosts can supply their own UI over the
