@@ -22,6 +22,8 @@ export const Media = Node.create({
   isolating: true,
   defining: true,
   draggable: false,
+  // The media bar is this block's toolbar; the text bubble must not appear over it (see core BubbleToolbar).
+  extendNodeSchema: (extension) => ({ bubbleless: extension.name === MEDIA_NODE }),
   addAttributes() {
     return {
       kind: {

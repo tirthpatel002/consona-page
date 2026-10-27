@@ -1178,3 +1178,8 @@ body.page-is-marqueeing {
   margin: 8px 10px;
   font-size: 13px;
 }
+
+/* Media is monochrome when selected: the shared selection tint is indigo, so scope a neutral ink to it. */
+.ProseMirror [data-type='media'] {
+  --page-selection: var(--page-fg);
+}
