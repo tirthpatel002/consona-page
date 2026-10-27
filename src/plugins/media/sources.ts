@@ -1,4 +1,4 @@
-import { isSafeUrl } from '../../editor/core'
+import { isSafeMediaSource, isSafeUrl } from '../../editor/core'
 
 export type MediaKind = 'image' | 'video' | 'audio' | 'file' | 'embed'
 export const MEDIA_KINDS: readonly MediaKind[] = ['image', 'video', 'audio', 'file', 'embed']
@@ -6,14 +6,6 @@ export const MEDIA_KINDS: readonly MediaKind[] = ['image', 'video', 'audio', 'fi
 export const asKind = (value: unknown): MediaKind => MEDIA_KINDS.find((k) => k === value) ?? 'image'
 
 const DATA_MIME = /^data:([a-z0-9.+-]+\/[a-z0-9.+-]+)?(?:;[^,]*)?,/i
-const IMAGE_DATA = /^(?:image\/(?:png|jpe?g|gif|webp|avif))$/i
-const VIDEO_DATA = /^(?:video\/(?:mp4|webm|ogg))$/i
-const AUDIO_DATA = /^(?:audio\/(?:mpeg|mp3|wav|x-wav|wave|ogg|webm|mp4|aac|flac|x-m4a|m4a))$/i
-/** Document and archive types a file block may hold. Anything that a browser could render as a page is excluded. */
-const FILE_DATA =
-  /^(?:application\/(?:pdf|zip|x-zip-compressed|gzip|octet-stream|json|msword|vnd\.ms-excel|vnd\.ms-powerpoint|rtf|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|vnd\.oasis\.opendocument\.(?:text|spreadsheet|presentation))|text\/(?:plain|csv|markdown))$/i
-
-const hasScheme = (url: string) => /^[a-z][a-z0-9+.-]*:/i.test(url)
 
 /** MIME type of a data URL, or null when it is not a data URL. */
 export function dataMime(src: string): string | null {
@@ -22,7 +14,7 @@ export function dataMime(src: string): string | null {
 }
 
 /** True when the MIME type may be stored in a file block. */
-export const isAllowedFileMime = (mime: string): boolean => FILE_DATA.test(mime)
+export const isAllowedFileMime = (mime: string): boolean => isSafeMediaSource('file', `data:${mime};base64,`)
 
 const EMBED_SRC = /^https:\/\/(?:www\.youtube-nocookie\.com\/embed\/[\w-]{11}|player\.vimeo\.com\/video\/\d{1,12})$/
 
@@ -35,21 +27,8 @@ export function isSafeMediaSrc(kind: MediaKind, src: unknown): src is string {
   const value = src.trim()
   if (value === '') return false
   if (kind === 'embed') return isEmbedSrc(value)
-  const mime = dataMime(value)
-  // Data URLs are judged by their own per-kind type list (the shared allowlist has no audio or file types).
-  if (mime !== null) {
-    const ok =
-      kind === 'image'
-        ? IMAGE_DATA.test(mime)
-        : kind === 'video'
-          ? VIDEO_DATA.test(mime)
-          : kind === 'audio'
-            ? AUDIO_DATA.test(mime)
-            : FILE_DATA.test(mime)
-    return ok
-  }
-  if (/^data:/i.test(value) || !isSafeUrl(value)) return false
-  return /^https?:\/\//i.test(value) || !hasScheme(value)
+  // One central policy decides every non-embed source (data types per kind, http(s), relative paths).
+  return isSafeMediaSource(kind, value)
 }
 
 export const isHttpUrl = (src: string): boolean => /^https?:\/\//i.test(src.trim()) && isSafeUrl(src)

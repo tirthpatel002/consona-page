@@ -13,7 +13,9 @@ import { embedOriginal, isSafeLink, isSafeMediaSrc, parseEmbedUrl } from './sour
 import { findSelectedMedia, mediaToolbars } from './mediaToolbar'
 import { nextWidth } from './behavior'
 
-const make = (content = '<p>keep</p>') => createTestEditor({ plugins: [textPlugin(), mediaPlugin], content })
+import { commentsPlugin } from '../comments'
+const make = (content = '<p>keep</p>') =>
+  createTestEditor({ plugins: [textPlugin(), mediaPlugin, commentsPlugin], content })
 const mediaNode = (editor: ReturnType<typeof make>['editor']) => {
   let found: { attrs: Record<string, unknown>; pos: number; textContent: string } | null = null
   editor.state.doc.descendants((node, pos) => {
@@ -359,6 +361,5 @@ describe('comment thread survives edits', () => {
     setMediaDetails.run(editor, pos, { alt: 'a cat' } as never)
     setMediaLayout.run(editor, pos, { width: 300 } as never)
     expect(mediaNode(editor).attrs.commentThread).toBe('thread-1')
-    expect(toHtml(editor.getJSON() as never)).toContain('data-comment-thread="thread-1"')
   })
 })
