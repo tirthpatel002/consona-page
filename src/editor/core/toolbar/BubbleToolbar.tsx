@@ -15,7 +15,11 @@ export function BubbleToolbar({ editor, items }: { readonly editor: Editor; read
     editor,
     selector: ({ editor: current }): { anchor: AnchorRect | null; active: boolean[]; enabled: boolean[] } => {
       const { selection } = current.state
-      const blockNode = selection instanceof NodeSelection && selection.node.isBlock
+      // A block whose node spec sets `bubbleless` has its own toolbar, so the text bubble stays away from it.
+      const blockNode =
+        selection instanceof NodeSelection &&
+        selection.node.isBlock &&
+        (selection.node.type.spec as { bubbleless?: boolean }).bubbleless !== true
       const visible = !selection.empty && current.isEditable && (selection.$from.parent.isTextblock || blockNode)
       let anchor: AnchorRect | null = null
       if (visible) {

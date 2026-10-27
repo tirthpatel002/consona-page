@@ -45,3 +45,12 @@ bullet/ordered/task lists (nested), blockquotes, fenced code, horizontal rules, 
 whole-line `![alt](src)` images. `fromHtml` covers the tags the exporter emits plus common foreign
 HTML (headings, paragraphs, lists including checkbox lists, quotes, pre/code, tables with spans,
 details, figures, standalone img/video, styled spans); unknown containers are flattened, never dropped.
+
+## Media source policy
+
+`isSafeUrl` stays the check for links. Media sources use `isSafeMediaSource(kind, url)` from the core index:
+http(s) and relative paths for every kind, plus inline `data:` URLs of exact types only, per kind (image: png,
+jpeg, gif, webp, avif; video: mp4, webm, ogg; audio: mpeg, mp3, wav, ogg, webm, mp4, aac; file: pdf, plain
+text, csv, zip). No wildcards, no SVG or HTML. A data URL of one kind is refused for another, and audio or file
+data URLs are refused by `isSafeUrl`, so they cannot become links or images. Embeds use a host allowlist in the
+media plugin. Block specs can set `bubbleless` to keep the text bubble toolbar off their node selection.
