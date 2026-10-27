@@ -50,3 +50,4 @@ export {
   type SearchHit,
   type SearchOptions,
 } from './search'
+export { findOrphanBlobs, referencedBlobIds, removeBlobs } from './blobSweep'

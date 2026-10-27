@@ -70,3 +70,10 @@ Each result has the page id, title, ancestor titles, whether the title matched, 
 with the block id and an excerpt. Bodies are read one at a time; `truncated` is true when `maxPages` stopped the
 walk. A body that cannot be read is skipped. Not covered: ranking (results are in tree order), matching inside
 tables-of-contents or embedded blocks that hold text in attributes, and any search UI. This is the data layer.
+
+## Orphan files
+
+`findOrphanBlobs(blobs, pageId, documents)` lists stored files of a page that none of the given documents refer
+to through a `blob:<id>` attribute, and `removeBlobs` removes the ids you pass. Nothing is removed automatically:
+the caller must pass the current body and every saved version, or restoring a version would lose its file. The
+demo does not run a sweep yet and no UI offers one; deleting a page for good already removes all its files.
