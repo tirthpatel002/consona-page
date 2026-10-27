@@ -181,10 +181,10 @@ export const Media = Node.create({
         },
         ignoreMutation: (mutation) => {
           if (mutation.type === 'selection') return false
-          // The broken-source marker is view state, not a document change.
-          if (mutation.type === 'attributes' && mutation.attributeName === 'data-broken') return true
-          const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement
-          return target?.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null && target !== null
+          // Only the caption is editable content. Everything else (frame, player, object URL swaps, the
+          // toolbar slot) is drawn by this view, and ProseMirror must not read it back as a document change.
+          if (contentDOM && contentDOM.contains(mutation.target)) return false
+          return true
         },
         stopEvent: (event) =>
           event.target instanceof Element &&

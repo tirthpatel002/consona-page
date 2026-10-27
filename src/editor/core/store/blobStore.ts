@@ -36,7 +36,29 @@ export interface BlobLimits {
 export const DEFAULT_BLOB_LIMITS: BlobLimits = {
   maxFileBytes: 25 * 1024 * 1024,
   maxPageBytes: 250 * 1024 * 1024,
-  allowedTypes: ['image/*', 'video/*', 'audio/*', 'application/pdf'],
+  // Exact types, the same ones `isSafeMediaSource` accepts as inline data: no SVG, HTML or other active types.
+  allowedTypes: [
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp',
+    'image/avif',
+    'video/mp4',
+    'video/webm',
+    'video/ogg',
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/wav',
+    'audio/x-wav',
+    'audio/ogg',
+    'audio/webm',
+    'audio/mp4',
+    'audio/aac',
+    'application/pdf',
+    'text/plain',
+    'text/csv',
+    'application/zip',
+  ],
 }
 
 /**

@@ -227,4 +227,78 @@ describe('page engine', () => {
     expect(big).toMatchObject({ ok: false, errors: [{ code: 'too_large' }] })
     destroy()
   })
+
+  it('moveAfter moves a block with its id and content, as one undo step, and refuses bad targets', () => {
+    const { engine, editor, destroy } = make()
+    const a = idOf(engine, 'alpha one')
+    const b = idOf(engine, 'beta two')
+    const title = idOf(engine, 'Title')
+    const before = idsAndText(editor)
+    const base = engine.revision()
+    const res = engine.edit({ baseRevision: base, requestId: 'm1', steps: [{ op: 'moveAfter', id: title, after: b }] })
+    expect(res.ok).toBe(true)
+    const order = engine
+      .outline()
+      .blocks.filter((x) => x.depth === 0)
+      .map((x) => x.text)
+    expect(order.slice(0, 3)).toEqual(['alpha one', 'beta two', 'Title'])
+    expect(idsAndText(editor)).toEqual(before)
+    editor.commands.undo()
+    expect(engine.outline().blocks[0]?.text).toBe('Title')
+    // moving into itself or onto a missing block changes nothing
+    const base2 = engine.revision()
+    const list = engine.outline().blocks.find((x) => x.type === 'bulletList')?.id ?? ''
+    const item = engine.outline().blocks.find((x) => x.type === 'listItem')?.id ?? ''
+    for (const [id, after, code] of [
+      [list, item, 'cycle'],
+      [a, a, 'cycle'],
+      [a, 'nope', 'unknown_block'],
+    ] as const) {
+      const r = engine.edit({
+        baseRevision: base2,
+        requestId: 'x' + code + id,
+        steps: [{ op: 'moveAfter', id, after }],
+      })
+      expect(r.ok).toBe(false)
+      if (!r.ok) expect(r.errors[0]?.code).toBe(code)
+    }
+    expect(engine.revision()).toBe(base2)
+    destroy()
+  })
+
+  it('moveAfter refuses a move that would leave a parent invalid and a stale target', () => {
+    const { engine, destroy } = make()
+    const items = engine.outline().blocks.filter((x) => x.type === 'listItem')
+    const para = idOf(engine, 'alpha one')
+    const base = engine.revision()
+    // a paragraph cannot go directly after a list item's... inside the list (list accepts only items)
+    const r = engine.edit({
+      baseRevision: base,
+      requestId: 'bad',
+      steps: [{ op: 'moveAfter', id: para, after: items[0]?.id ?? '' }],
+    })
+    expect(r.ok).toBe(false)
+    // last-item removal from the list into the page is refused (list would be left empty)
+    engine.edit({ baseRevision: base, requestId: 'del', steps: [{ op: 'delete', id: items[1]?.id ?? '' }] })
+    const base2 = engine.revision()
+    const last = engine.outline().blocks.find((x) => x.type === 'listItem')?.id ?? ''
+    const r2 = engine.edit({
+      baseRevision: base2,
+      requestId: 'last',
+      steps: [{ op: 'moveAfter', id: last, after: para }],
+    })
+    expect(r2.ok).toBe(false)
+    // stale: target changed after it was read
+    const b2 = idOf(engine, 'beta two')
+    const read = engine.revision()
+    engine.edit({ baseRevision: read, requestId: 'chg', steps: [{ op: 'replaceText', id: b2, text: 'beta changed' }] })
+    const stale = engine.edit({
+      baseRevision: read,
+      requestId: 'st',
+      steps: [{ op: 'moveAfter', id: para, after: b2 }],
+    })
+    expect(stale.ok).toBe(false)
+    if (!stale.ok) expect(stale.errors[0]?.code).toBe('stale')
+    destroy()
+  })
 })

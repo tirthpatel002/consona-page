@@ -45,3 +45,28 @@ Not done: the demo does not use the registry yet (no sidebar, no nested-page blo
 Limits (defaults, overridable): 25 MiB per file, 250 MiB per page, types `image/*`, `video/*`, `audio/*`, `application/pdf`. A refused file rejects with `BlobLimitError` (`too_large`, `page_limit`, `type_not_allowed`, with the limit) before anything is written; a full browser rejects with `StorageQuotaError`. Replacing an id counts only the new size. These numbers are placeholders chosen here, not user decisions, and the editor must show them to the user when it refuses a file.
 
 Not done: nothing uses the blob store yet (the media plugin still embeds data URLs; moving it over and migrating existing data URLs out of stored pages is the media worker's step, with the old copy kept until the move is verified); no orphan cleanup when a block holding a file id is deleted or a page version is dropped; `deleteForever` removes a page's files only when the registry is given a `blobs` store (the demo does not create one yet); blob changes are not announced to other tabs; object URLs for display must be created and revoked by the reader. jsdom's fake IndexedDB does not keep a Blob's `type` on the stored object, so the tests check the record's `type`; a real Chrome run checked that bytes, `instanceof Blob`, type and a refusal round-trip.
+
+## History and comments storage
+
+Version history and comment threads read and write through `getSidecarStorage()` (localStorage by default, so
+existing hosts are unchanged). A host can call `setSidecarStorage(createIndexedDbSidecar())` after
+`await sidecar.ready()` and before the editor mounts. The demo does this in `prepareSidecar()`; if opening
+IndexedDB fails, history and comments stay in localStorage. Reads are served from memory and writes are stored
+in the background, so a failed write is reported through `onWriteError` and `flush()` (the demo sets
+`sidecarWriteFailed`) instead of throwing. Older localStorage copies are imported once per key and left in
+place; a record changed or removed in IndexedDB is not brought back from them.
+
+The demo shows a fixed bottom bar ("Version history or comments could not be saved on this device") with Try again, which calls `retry()` (rewrites everything held in memory) and clears the bar only when that write is stored. The page-save error, the conflict bar and this bar share one fixed stack at the bottom (rendered through a portal from `app/App.tsx`), so several at once stack instead of covering each other, and the page gets bottom padding while it shows.
+
+Not covered: a second tab's history or comments are
+not live-updated, and the pagehide flush is best effort. Checked in desktop Chrome only: a typed edit created
+a version record in IndexedDB that survived a reload.
+
+## Search
+
+`searchPages({ registry, pages }, query, { limit, hitsPerPage, maxPages })` walks live pages from the top level
+(trashed pages and their subtrees are skipped), matching titles and body text case- and accent-insensitively.
+Each result has the page id, title, ancestor titles, whether the title matched, and up to `hitsPerPage` hits
+with the block id and an excerpt. Bodies are read one at a time; `truncated` is true when `maxPages` stopped the
+walk. A body that cannot be read is skipped. Not covered: ranking (results are in tree order), matching inside
+tables-of-contents or embedded blocks that hold text in attributes, and any search UI. This is the data layer.

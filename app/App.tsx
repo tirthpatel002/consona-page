@@ -3,30 +3,15 @@ import type { JSONContent } from '@tiptap/core'
 import { composePlugins, PageEditor, usePageController } from '../src/editor/core'
 import initialDoc from './content/initial-doc.json'
 import { PageBanner } from '../src/utils/banner/PageBanner'
-import { loadDemoPage, MissingPageError, openOlderLocalCopy } from './demoSession'
+import { demoDocumentId as documentId, loadDemoPage, MissingPageError, openOlderLocalCopy } from './demoSession'
 import { PageToolbar } from './PageToolbar'
 import { SaveStatus } from './SaveStatus'
+import { SidecarStatus } from './SidecarStatus'
 import { pagePlugins } from './plugins'
 import '../src/utils/banner/banner.css'
 
 // Composed once at module load: conflicts fail fast at startup, not mid-edit.
 const registry = composePlugins(pagePlugins)
-// The demo has one document and no account/workspace layer, so its identity is a UUID created
-// once and persisted locally - stable across reloads and title changes, never reused by a second
-// document (a real host app passes its own document/workspace IDs instead).
-const DOCUMENT_ID_KEY = 'page:document:id'
-const documentId = ((): string => {
-  try {
-    const existing = localStorage.getItem(DOCUMENT_ID_KEY)
-    if (existing) return existing
-    const created = crypto.randomUUID()
-    localStorage.setItem(DOCUMENT_ID_KEY, created)
-    return created
-  } catch {
-    return 'demo-document'
-  }
-})()
-
 const TITLE = 'Page'
 
 type Load =
@@ -37,11 +22,15 @@ type Load =
 
 function Page({ initialContent }: { readonly initialContent: JSONContent }) {
   const page = usePageController({ registry, initialContent, documentId })
+  // Errors from every status component gather in one fixed stack, so two at once never cover each other.
+  const [errorHost, setErrorHost] = useState<HTMLElement | null>(null)
   return (
     <div className="app-frame">
+      <div className="app-error-stack" ref={setErrorHost} />
       <PageBanner documentId={documentId} title={TITLE} />
       <PageToolbar page={page} />
-      {page.editor && <SaveStatus editor={page.editor} />}
+      {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
+      <SidecarStatus errorHost={errorHost} />
       <PageEditor page={page} />
     </div>
   )

@@ -1,6 +1,8 @@
 import type { JSONContent } from '@tiptap/core'
 import {
   createIndexedDbBlobStore,
+  createIndexedDbSidecar,
+  setSidecarStorage,
   createIndexedDbRegistryStorage,
   createMemoryBlobStore,
   createMemoryRegistryStorage,
@@ -108,5 +110,61 @@ export async function loadPage(documentId: string, deps: LoadDeps): Promise<Load
   return attempt(fallback)
 }
 
-export const loadDemoPage = (documentId: string): Promise<LoadedPage> =>
-  loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSession })
+const sidecar = indexedDbStore ? createIndexedDbSidecar() : null
+let sidecarReady: Promise<void> | null = null
+/** True after a background write of history or comments failed, so they may not survive a reload. */
+export let sidecarWriteFailed = false
+const sidecarListeners = new Set<() => void>()
+const setSidecarFailed = (value: boolean) => {
+  if (sidecarWriteFailed === value) return
+  sidecarWriteFailed = value
+  sidecarListeners.forEach((l) => l())
+}
+export const subscribeSidecar = (listener: () => void) => {
+  sidecarListeners.add(listener)
+  return () => void sidecarListeners.delete(listener)
+}
+export const getSidecarFailed = () => sidecarWriteFailed
+/** Writes history and comments again. Clears the warning only when the write is stored. */
+export const retrySidecar = async (): Promise<void> => {
+  if (!sidecar) return
+  try {
+    await sidecar.retry()
+    setSidecarFailed(false)
+  } catch {
+    setSidecarFailed(true)
+  }
+}
+/** History and comments move to IndexedDB before the editor mounts. If that fails they stay in localStorage. */
+export const prepareSidecar = (): Promise<void> => {
+  if (!sidecar) return Promise.resolve()
+  sidecarReady ??= sidecar.ready().then(
+    () => {
+      sidecar.onWriteError = () => setSidecarFailed(true)
+      setSidecarStorage(sidecar)
+    },
+    () => undefined,
+  )
+  return sidecarReady
+}
+
+export const loadDemoPage = async (documentId: string): Promise<LoadedPage> => {
+  await prepareSidecar()
+  return loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSession })
+}
+
+// The demo has one document and no account/workspace layer, so its identity is a UUID created
+// once and persisted locally - stable across reloads and title changes, never reused by a second
+// document (a real host app passes its own document/workspace IDs instead).
+const DOCUMENT_ID_KEY = 'page:document:id'
+export const demoDocumentId = ((): string => {
+  try {
+    const existing = localStorage.getItem(DOCUMENT_ID_KEY)
+    if (existing) return existing
+    const created = crypto.randomUUID()
+    localStorage.setItem(DOCUMENT_ID_KEY, created)
+    return created
+  } catch {
+    return 'demo-document'
+  }
+})()
