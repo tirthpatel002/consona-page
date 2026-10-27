@@ -61,3 +61,12 @@ The demo shows a fixed bottom bar ("Version history or comments could not be sav
 Not covered: a second tab's history or comments are
 not live-updated, and the pagehide flush is best effort. Checked in desktop Chrome only: a typed edit created
 a version record in IndexedDB that survived a reload.
+
+## Search
+
+`searchPages({ registry, pages }, query, { limit, hitsPerPage, maxPages })` walks live pages from the top level
+(trashed pages and their subtrees are skipped), matching titles and body text case- and accent-insensitively.
+Each result has the page id, title, ancestor titles, whether the title matched, and up to `hitsPerPage` hits
+with the block id and an excerpt. Bodies are read one at a time; `truncated` is true when `maxPages` stopped the
+walk. A body that cannot be read is skipped. Not covered: ranking (results are in tree order), matching inside
+tables-of-contents or embedded blocks that hold text in attributes, and any search UI. This is the data layer.

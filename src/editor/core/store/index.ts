@@ -42,3 +42,11 @@ export {
   type IndexedDbSidecar,
   type SidecarStorage,
 } from './sidecarStorage'
+export {
+  searchPages,
+  textBlocks,
+  type PageSearchResponse,
+  type PageSearchResult,
+  type SearchHit,
+  type SearchOptions,
+} from './search'
