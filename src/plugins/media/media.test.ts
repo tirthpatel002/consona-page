@@ -84,17 +84,22 @@ describe('media plugin', () => {
     destroy()
   })
 
-  it('inserts dropped files as data URLs and skips non-media and oversized files', async () => {
+  it('inserts dropped files as data URLs and turns documents into file blocks and skips unsafe types and oversized files', async () => {
     const { editor, destroy } = make('<p>one</p>')
     const problems: string[] = []
     const png = new File([new Uint8Array([137, 80, 78, 71])], 'a.png', { type: 'image/png' })
     const text = new File(['hi'], 'a.txt', { type: 'text/plain' })
+    const page = new File(['<b>x</b>'], 'a.html', { type: 'text/html' })
     const big = new File([new Uint8Array(MAX_EMBED_BYTES + 1)], 'big.mp4', { type: 'video/mp4' })
-    const count = await insertFiles(editor, [png, text, big], editor.state.doc.content.size, (m) => problems.push(m))
-    expect(count).toBe(1)
+    const count = await insertFiles(editor, [png, text, page, big], editor.state.doc.content.size, (m) =>
+      problems.push(m),
+    )
+    expect(count).toBe(2)
     expect(problems).toEqual([expect.stringContaining('big.mp4')])
-    const media = editor.state.doc.content.content.find((n) => n.type.name === 'media')
-    expect(String(media?.attrs.src)).toMatch(/^data:image\/png;base64,/)
+    const blocks = editor.state.doc.content.content.filter((n) => n.type.name === 'media')
+    expect(blocks.map((n) => n.attrs.kind)).toEqual(['image', 'file'])
+    expect(String(blocks[0]?.attrs.src)).toMatch(/^data:image\/png;base64,/)
+    expect(blocks[1]?.attrs).toMatchObject({ name: 'a.txt', size: 2 })
     destroy()
   })
 })
@@ -108,11 +113,12 @@ describe('media toolbar', () => {
     const found = findSelectedMedia(editor)
     if (!found) throw new Error('no media selected')
     expect(found.src).toBe('https://x.test/a.png')
-    const left = mediaToolbar.groups[0]
-    if (left.kind !== 'buttons') throw new Error('expected buttons')
-    left.actions[0].run(editor)
+    const group = mediaToolbar.groups[0]
+    if (group.kind !== 'menus') throw new Error('expected the align menu')
+    const left = group.menus[0].sections[0][0]
+    left.run(editor)
     expect(editor.state.doc.nodeAt(found.pos)?.attrs.align).toBe('left')
-    expect(left.actions[0].isActive?.(editor)).toBe(true)
+    expect(left.isActive?.(editor)).toBe(true)
     editor.commands.undo()
     expect(editor.state.doc.nodeAt(found.pos)?.attrs.align).toBe('center')
     destroy()
@@ -148,7 +154,7 @@ describe('media toolbar on a locked page', () => {
     const actions = mediaToolbar.groups.flatMap((g) =>
       g.kind === 'menus' ? g.menus.flatMap((m) => m.sections.flat()) : [...g.actions],
     )
-    const editing = actions.filter((a) => !['media:download', 'media:open-original'].includes(a.id))
+    const editing = actions.filter((a) => !['media:download', 'media:open-original', 'media:fullscreen'].includes(a.id))
     expect(editing.length).toBeGreaterThan(0)
     for (const action of editing) {
       expect(action.can(editor)).toBe(false)

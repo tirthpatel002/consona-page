@@ -1,4 +1,5 @@
 import { isSafeUrl } from '../../editor/core'
+import { asKind, isSafeLink, isSafeMediaSrc } from '../media/sources'
 import type { Doc } from './types'
 
 export { isSafeUrl }
@@ -14,14 +15,18 @@ export function sanitizeImported(doc: Doc): Doc {
       const href = String((value.attrs as { href: string }).href)
       if (!isSafeUrl(href)) return undefined
     }
+    let dropLink = false
     if (value.type === 'media' && typeof (value.attrs as { src?: unknown } | undefined)?.src === 'string') {
-      if (!isSafeUrl(String((value.attrs as { src: string }).src))) return undefined
+      const attrs = value.attrs as { src: string; kind?: unknown; link?: unknown }
+      if (!isSafeMediaSrc(asKind(attrs.kind), attrs.src)) return undefined
+      if (typeof attrs.link === 'string' && attrs.link !== '' && !isSafeLink(attrs.link)) dropLink = true
     }
     const out: { [key: string]: Json } = {}
     for (const [key, child] of Object.entries(value)) {
       const next = clean(child)
       if (next !== undefined) out[key] = next
     }
+    if (dropLink) out.attrs = { ...(out.attrs as { [key: string]: Json }), link: '' }
     return out
   }
   return (clean(doc as unknown as Json) ?? { type: 'doc', content: [] }) as unknown as Doc

@@ -1,3 +1,4 @@
+import { embedOriginal } from '../media/sources'
 import { imageSize } from './imageSize'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
 import { createZip, type ZipEntry } from './zip'
@@ -166,7 +167,10 @@ const MAX_IMAGE_PX = 600
 function mediaToDocx(node: DocNode, ctx: Context, out: string[]): void {
   const kind = stringAttr(node, 'kind') ?? 'image'
   const src = stringAttr(node, 'src') ?? ''
-  const caption = textOf({ type: 'media', content: node.content }).trim()
+  const caption =
+    (node.attrs as { showCaption?: unknown } | undefined)?.showCaption === false
+      ? ''
+      : textOf({ type: 'media', content: node.content }).trim()
   const dataUrl = src.match(/^data:image\/(png|jpe?g|gif);base64,(.+)$/)
   if (kind === 'image' && dataUrl) {
     const ext = dataUrl[1] === 'jpeg' ? 'jpg' : dataUrl[1]
@@ -193,8 +197,12 @@ function mediaToDocx(node: DocNode, ctx: Context, out: string[]): void {
       ),
     )
   } else if (src) {
-    const label = kind === 'video' ? 'Video' : 'Image'
-    out.push(para(textRun(`[${label}: ${src}]`, [], false)))
+    // Word has no player, file or embed; keep the address (or file name) as visible text.
+    const label =
+      kind === 'video' || kind === 'embed' ? 'Video' : kind === 'audio' ? 'Audio' : kind === 'file' ? 'File' : 'Image'
+    const shown =
+      kind === 'embed' ? embedOriginal(src) : kind === 'file' ? (stringAttr(node, 'name') ?? '') || src : src
+    out.push(para(textRun(`[${label}: ${shown.startsWith('data:') ? 'embedded data' : shown}]`, [], false)))
   }
   if (caption) {
     out.push(para(textRun(caption, [{ type: 'textStyle', attrs: { color: '#6b7280' } }], false)))

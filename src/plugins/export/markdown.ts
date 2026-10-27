@@ -1,4 +1,4 @@
-import { isSafeUrl } from '../../editor/core'
+import { asKind, embedOriginal, isSafeMediaSrc } from '../media/sources'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
 
 /**
@@ -142,13 +142,24 @@ export function blockToMarkdown(node: DocNode): string[] {
     case 'embedBlock':
       return calloutLines(node)
     case 'media': {
-      const kind = stringAttr(node, 'kind') ?? 'image'
+      const kind = asKind(stringAttr(node, 'kind'))
       const rawSrc = stringAttr(node, 'src') ?? ''
-      const src = isSafeUrl(rawSrc) ? rawSrc : ''
-      const caption = textOf({ type: 'media', content: node.content })
-      if (kind === 'video')
-        return [`<video src="${src.replace(/["<>&]/g, (c) => encodeURIComponent(c))}">${escapeText(caption)}</video>`]
-      return [`![${caption.replace(/[[\]]/g, '')}](${src})`]
+      const src = isSafeMediaSrc(kind, rawSrc) ? rawSrc : ''
+      const alt = stringAttr(node, 'alt') ?? ''
+      const showCaption = (node.attrs as { showCaption?: unknown } | undefined)?.showCaption !== false
+      const caption = showCaption ? textOf({ type: 'media', content: node.content }) : ''
+      const escapeAttr = (value: string) => value.replace(/["<>&]/g, (c) => encodeURIComponent(c))
+      if (kind === 'video') return [`<video src="${escapeAttr(src)}">${escapeText(caption)}</video>`]
+      if (kind === 'audio') return [`<audio src="${escapeAttr(src)}">${escapeText(caption)}</audio>`]
+      if (kind === 'embed') {
+        const page = embedOriginal(src)
+        return page ? [`[${escapeText(caption || 'Video')}](${page})`] : []
+      }
+      if (kind === 'file') {
+        const name = (stringAttr(node, 'name') ?? '').replace(/[[\]]/g, '') || 'File'
+        return src ? [`[${name}](${src})`] : []
+      }
+      return [`![${(caption || alt).replace(/[[\]]/g, '')}](${src})`]
     }
     case 'hardBreak':
       return []
