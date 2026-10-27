@@ -1,22 +1,44 @@
-# Page — a pluggable block editor
+# Consona Page - a pluggable block editor
 
 Vite + React 19 + TypeScript + Tiptap 3. One Tiptap (ProseMirror) editor is the whole page: text is editable
 everywhere and selections span text and blocks. Rich blocks are plain React components embedded as atom nodes
 ("embed blocks"); the table is an editor-native node. Every feature — text formatting, block actions, the props
-editor, the JSON inspector and each block — is a plugin. All data on the page is sample data. No external UI
+editor, the JSON inspector and each block — is a plugin. The demo starts with sample data and persists edits on the current device. No external UI
 library: styling is plain CSS on a small set of editor tokens.
 
 ## Run
 
 ```sh
-npm install
+npm ci
 npm run dev          # http://127.0.0.1:5173
 npm run build        # tsc (strict) + vite build → dist/
 npm run check        # typecheck + lint + format:check + unit tests
-npm test             # vitest (pure logic only)
+npm test             # vitest (logic and jsdom integration tests)
 npm run lint         # eslint (incl. import cycles + architecture boundaries)
 npm run format       # prettier --write
 ```
+
+## Library development
+
+This repository builds both a demo and an installable ESM library. It is still private and has not been
+published. The package name remains `page` as a development identifier, not a claim that this registry name
+is available. A license, final package identity and release approval are required before publication.
+
+```sh
+npm run build:library  # dist/library: JS entries, declarations, stylesheet
+npm run test:package   # pack, install in an isolated consumer, exercise runtime/types/browser build
+npm pack              # local tarball only; runs the library build first
+```
+
+- [Public API and browser integration](docs/API.md)
+- [Engine usage and boundaries](docs/ENGINE.md)
+- [Compatibility, migrations and release gates](docs/RELEASING.md)
+
+Use `page/react` only in a browser/client component; `page/engine`, `page/store`, `page/compact` and
+`page/markdown` can be imported without browser globals. Importing an engine is DOM-free, but creating a
+Tiptap editor and editing a closed page through a detached editor still requires a DOM. The store alone
+can run in Node with memory or a host adapter. No CommonJS, server-rendered editor, or React Server
+Components support is claimed. Import `page/styles.css` once in the host.
 
 ## Architecture
 
@@ -220,32 +242,41 @@ props, openPanel }) }` — shown in every applicable block's handle menu), `pane
 toolbars, rendered once by `PageEditor`; it subscribes to the editor itself), then add it to
 `src/app/plugins.ts`. See `src/plugins/*` and `src/blocks/table` for examples.
 
-## Saving and recovery
+## Saving, identity and recovery
 
-The demo saves the page to IndexedDB through the page store (`src/editor/core/store`), under its document id. If IndexedDB is unavailable it saves to localStorage in the original format. A page saved by an earlier version in localStorage is imported once on first load; the old copy is left in place.
+The demo loads a page before mounting its editor. It saves through a revision-checked store with a visible
+saving/saved/error/conflict status and retry. A conflict never overwrites the newer stored body. Download
+unsaved edits before explicitly discarding them. Lifecycle flushing is best effort, not crash recovery.
 
-- The page is loaded before the editor opens, so a late read cannot replace text you already typed. If the saved page cannot be read, the editor does not open (a first save would overwrite it) and offers "Try again".
-- Edits are written 500 ms after the last change, and also when the page is hidden, closed (`pagehide`) or the editor is destroyed. Saves run one at a time and the latest text wins. Flushing on close is best effort: a browser crash, a killed process or an asynchronous IndexedDB write that the browser cancels on close can still lose the last changes.
-- Every save carries the revision it was loaded at. If the page was changed elsewhere (for example in another tab), saving stops, the status line says so, and nothing is overwritten. The status line offers "Download my version" (the current page as JSON), and reloading the latest copy needs a second click that says it discards your edits; closing the tab asks first. Edits made in the stale tab since then are not saved and not merged automatically.
-- A visible status line shows "Saving...", "Saved on this device", or the failure with a "Try again" button. Restoring a version from history is saved like any other edit.
-- If IndexedDB held a page once (remembered by a marker in localStorage), a later IndexedDB failure does not open the older localStorage copy, and a missing record is not silently replaced by it either: the page shows a recovery screen that says the saved copy is gone and offers, as explicit choices, "Open the older copy" (if one exists, with a warning that it may be out of date) or "Start with the sample page". If the marker cannot be written, or localStorage is cleared, that protection is lost. A page that never lived in IndexedDB falls back to localStorage once.
-- There is still no automatic recoverable draft: "Download my version" is the only way to keep unsaved edits from a conflict, and closing the tab after confirming the browser prompt loses them.
-- Not done: oversized media is stored inside the document and can hit storage limits (not checked or reported separately), version history and comments still use localStorage, there is no cross-tab live update, and the status wording is first-pass.
+- Page bodies live once, by stable page id, in IndexedDB (localStorage fallback when appropriate). The registry
+  holds only hierarchy, title, order and trash state. Trash keeps bodies until explicit permanent deletion.
+- Schema migration upgrades older records and refuses unsupported future formats. A legacy localStorage
+  copy is retained on import. Recovery from a missing IndexedDB record is an explicit choice, not silent
+  replacement with an old copy.
+- Stable block ids survive ordinary edits and moves; pasted/duplicated blocks receive new ids. Old pages
+  acquire ids when opened. Closed-page engine edits refuse bodies missing ids rather than silently migrate.
+- New media uploads use the blob adapter when provided; the body holds a reference. File limits are checked
+  before writing. An inline-data fallback remains for hosts without a blob adapter.
+- History/comments use a sidecar adapter (localStorage by default, IndexedDB in the demo when available).
+  Sidecar write failure is shown separately from page saving.
+- IndexedDB page changes use BroadcastChannel for other tabs. Dirty editors preserve local edits and report
+  conflicts. Registry, settings and sidecar records are not a collaborative multi-user data model.
+- The page engine provides bounded reads, rich Markdown edits, revisions, replay, guarded undo, and page-level
+  operations. Locks persist in page settings when supplied. See the engine guide for retry durability limits.
 
-## Block ids
-
-Every block node (paragraphs, headings, list and task items, tables and their rows and cells, columns, toggles, media, embed blocks) has a `blockId` attribute: "b" plus nine base36 characters, unique within the page. This is the base for the engine, search and anchors that come later; nothing uses it yet.
-
-- An old page gets ids when it loads. The assignment is not an undo step, and the autosave stores it, so opening an old page writes it once (a second tab open on the same old page will then see a conflict on its next save).
-- New blocks get an id when they are created. Typing, undo and moving a block keep ids. A pasted or duplicated copy gets a new id and the original keeps its own; a malformed id or an id seen twice (for example from pasted HTML) is replaced.
-- Ids are written to the editor's HTML as `data-block-id`, so a copy carries them; the HTML and Markdown exporters do not write them.
-- Limits: ids are not yet checked by the stored-page migration (the store keeps whatever the editor wrote), which parts of a table or list count as "a block" for the engine is not decided, and the id of a block that is split (Enter in a paragraph) follows the editor's default: the new half gets a new id.
+Browser coverage, storage-failure checks and remaining release gates are recorded in
+[the release guide](docs/RELEASING.md). Unit coverage is not a security or production certification.
 
 ## Bundle size
 
-`npm run build` → one JS chunk ≈ 762 kB min / 240 kB gzip (Tiptap/ProseMirror and React DOM are most of it) and
-≈ 15 kB CSS. Reproduce a per-module breakdown with `ANALYZE=$PWD/.verify/mods.json npx vite build --outDir
-.verify/x`, or `SOURCEMAP=1 npx vite build` then `npx source-map-explorer dist/assets/*.js`.
+The demo build and library build are different outputs. Library dependencies remain external, with React and
+React DOM as peers; a host bundles only what it imports. Optional plugins and blocks have separate entries.
+The stylesheet currently includes all built-in styles, including math styles; it is not split per plugin.
+The packed-consumer test prints the actual tarball size and its browser bundle size on each run. Do not
+compare one JS entry's size with a complete application or claim a fixed performance budget from it.
+
+For demo analysis use `ANALYZE=$PWD/.verify/mods.json npm run build`, or `SOURCEMAP=1 npm run build` then
+`npx source-map-explorer dist/assets/*.js`.
 
 ## Design
 
@@ -263,4 +294,7 @@ Source rules, per kind (`sources.ts`, applied on parse, render, import and inser
 
 Exports: HTML keeps every attribute above and round-trips; Markdown writes images (alt or caption), audio, a file link and an embed link; Word embeds PNG/JPEG/GIF images and writes a text placeholder for the rest.
 
-Known limits: media is still stored as data URLs inside the document with an 8 MB cap per file (blob storage is not wired in yet); the bar uses text for Align, Caption and More (the toolbar API has no icon for them yet) and icons for Download, Open original and Comment; the text-formatting bubble can overlap the bar when a block is selected (core); no stock photo search, no remote crop; embedded players depend on the provider allowing the video; not checked with a screen reader or on real devices, and checked in desktop Chrome and a 390 px emulated touch viewport only.
+Known limits: media uploads without a host blob store remain inline. Media/export host configuration is
+module-scoped, so one independently configured host per application is supported, not concurrent independent
+workspaces in one JavaScript realm. The bar uses a mix of icons and text. Native clipboard, touch, assistive
+technology and cross-browser release checks remain separate from desktop Chrome and simulated-event tests.

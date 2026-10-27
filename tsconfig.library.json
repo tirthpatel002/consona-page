@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": false,
+    "rootDir": "src",
+    "outDir": "dist/library/types"
+  },
+  "include": ["src/package/**/*.ts", "src/blocks/**/*", "src/plugins/**/*", "src/editor/**/*", "src/utils/**/*"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+}
