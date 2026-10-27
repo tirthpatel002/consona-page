@@ -100,10 +100,20 @@ export function PagePreview({ registry, pages, blobs, pageId, parentId, version,
 
 export interface ChildPagePreviewsProps extends Omit<PagePreviewProps, 'pageId' | 'parentId'> {
   readonly parentId: string
+  /** Child IDs already represented by explicit in-body references. */
+  readonly excludeIds?: ReadonlySet<string>
 }
 
 /** Child relationships stay in the registry. This view never inserts or copies child bodies into a parent. */
-export function ChildPagePreviews({ parentId, registry, pages, blobs, version, onOpen }: ChildPagePreviewsProps) {
+export function ChildPagePreviews({
+  parentId,
+  registry,
+  pages,
+  blobs,
+  version,
+  onOpen,
+  excludeIds,
+}: ChildPagePreviewsProps) {
   const [ids, setIds] = useState<readonly string[]>([])
   const [failed, setFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -112,7 +122,7 @@ export function ChildPagePreviews({ parentId, registry, pages, blobs, version, o
     void registry.children(parentId).then(
       (records) => {
         if (!cancelled) {
-          setIds(records.slice(0, 50).map((r) => r.id))
+          setIds(records.map((r) => r.id))
           setFailed(false)
         }
       },
@@ -136,11 +146,13 @@ export function ChildPagePreviews({ parentId, registry, pages, blobs, version, o
         </button>
       </div>
     )
-  if (!ids.length) return null
+  const remaining = ids.filter((id) => !excludeIds?.has(id))
+  const visible = remaining.slice(0, 50)
+  if (!visible.length) return null
   return (
     <section className="page-previews" aria-label="Subpages">
       <h2>Inside this page</h2>
-      {ids.map((id) => (
+      {visible.map((id) => (
         <PagePreview
           key={id}
           registry={registry}
@@ -152,7 +164,7 @@ export function ChildPagePreviews({ parentId, registry, pages, blobs, version, o
           onOpen={onOpen}
         />
       ))}
-      {ids.length === 50 && (
+      {remaining.length > 50 && (
         <p className="page-preview__description">
           Showing the first 50 subpages. All pages are available in the sidebar.
         </p>
