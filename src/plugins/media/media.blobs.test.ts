@@ -13,7 +13,11 @@ import { insertMedia, setMediaDetails, setMediaLayout, setMediaSource } from './
 
 const png = (bytes = 4) => new File([new Uint8Array(bytes)], 'a.png', { type: 'image/png' })
 
+const created: { destroy: () => void }[] = []
+
 afterEach(() => {
+  // Destroy editors so their view timers do not fire after the test environment is gone.
+  for (const editor of created.splice(0)) editor.destroy()
   setMediaHost({})
   vi.restoreAllMocks()
 })
@@ -22,6 +26,7 @@ const setup = (maxFileBytes = 1024) => {
   const blobs = createMemoryBlobStore({ limits: { maxFileBytes } })
   const plugin = createMediaPlugin({ blobs, pageId: () => 'page-1' })
   const { editor } = createTestEditor({ plugins: [textPlugin(), plugin], content: '<p>keep</p>' })
+  created.push(editor)
   return { blobs, editor }
 }
 const media = (editor: ReturnType<typeof setup>['editor']) => {
@@ -127,6 +132,7 @@ describe('copy and paste inside the same page', () => {
       plugins: [textPlugin(), createMediaPlugin({ blobs: createMemoryBlobStore(), pageId: () => 'page-1' })],
       content: html,
     })
+    created.push(other)
     expect(media(other).attrs.blob).toBe(r.blob)
   })
 })
