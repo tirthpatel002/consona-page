@@ -239,8 +239,34 @@ function attachResize(view: EditorView, editor: Editor) {
   }
   view.dom.addEventListener('pointerdown', onDown, true)
   view.dom.addEventListener('keydown', onHandleKey, true)
+  /** Keeps the contextual bar inside the editor column: shifts it left/right when the block sits near an edge. */
+  const clampBar = () => {
+    const slot = view.dom.querySelector<HTMLElement>('.page-media__toolbar-slot:not(:empty)')
+    if (!slot) return
+    slot.style.left = ''
+    const host = view.dom.getBoundingClientRect()
+    slot.style.maxWidth = `${Math.max(120, Math.floor(host.width))}px`
+    const rect = slot.getBoundingClientRect()
+    if (rect.width === 0) return
+    const left = host.left
+    const right = host.right
+    let shift = 0
+    if (rect.right > right) shift = right - rect.right
+    if (rect.left + shift < left) shift = left - rect.left
+    // `left`, not a transform: a transformed ancestor would break the fixed-position menus inside the bar.
+    if (shift !== 0) slot.style.left = `${Math.round(shift)}px`
+  }
+  window.addEventListener('resize', clampBar)
+  // The bar content is a React portal that fills in after the selection update, so watch for it too.
+  const watcher = new MutationObserver(() => requestAnimationFrame(clampBar))
+  watcher.observe(view.dom, { childList: true, subtree: true })
   return {
+    update() {
+      requestAnimationFrame(clampBar)
+    },
     destroy() {
+      window.removeEventListener('resize', clampBar)
+      watcher.disconnect()
       view.dom.removeEventListener('pointerdown', onDown, true)
       view.dom.removeEventListener('keydown', onHandleKey, true)
       finish(false, 0)
