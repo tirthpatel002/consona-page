@@ -493,3 +493,39 @@
   outline: 2px solid var(--page-fg);
   outline-offset: 2px;
 }
+
+/* Bookmark: a link card (client-side only; no page is fetched for a preview). */
+.tiptap .page-media[data-kind='bookmark'] .page-media__frame {
+  display: block;
+}
+.tiptap .page-media__bookmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--page-border);
+  border-radius: var(--page-r-2, 8px);
+  color: var(--page-fg);
+  text-decoration: none;
+  background: var(--page-bg);
+}
+.tiptap .page-media__bookmark:hover {
+  background: var(--page-hover-fill);
+}
+.tiptap .page-media__bookmark:focus-visible {
+  outline: var(--page-focus-width) solid var(--page-fg);
+  outline-offset: 2px;
+}
+.tiptap .page-media__bookmark-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tiptap .page-media__bookmark-url {
+  font-size: 0.8rem;
+  color: var(--page-muted-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

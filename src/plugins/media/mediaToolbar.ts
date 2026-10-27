@@ -123,7 +123,9 @@ const download: BlockToolbarAction = {
   title: 'Download',
   can: (editor) => {
     const found = currentOf(editor)
-    return found !== null && found.kind !== 'embed' && isSafeMediaSrc(found.kind, found.src)
+    return (
+      found !== null && found.kind !== 'embed' && found.kind !== 'bookmark' && isSafeMediaSrc(found.kind, found.src)
+    )
   },
   run: (editor) => {
     const found = currentOf(editor)
@@ -305,6 +307,12 @@ export const mediaToolbars: readonly BlockToolbarDefinition[] = [
     resize: true,
   }),
   toolbarFor('media:toolbar-audio', 'Audio', ['audio'], { aligns: false, captions: true, openers: [], resize: false }),
+  toolbarFor('media:toolbar-bookmark', 'Bookmark', ['bookmark'], {
+    aligns: false,
+    captions: true,
+    openers: [],
+    resize: false,
+  }),
   toolbarFor('media:toolbar-file', 'File', ['file'], { aligns: false, captions: true, openers: [], resize: false }),
 ]
 

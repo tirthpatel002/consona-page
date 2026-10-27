@@ -363,3 +363,19 @@ describe('comment thread survives edits', () => {
     expect(mediaNode(editor).attrs.commentThread).toBe('thread-1')
   })
 })
+
+describe('bookmark link card', () => {
+  it('accepts only http(s) addresses and round-trips through HTML and Markdown', () => {
+    const { editor } = make()
+    expect(insertMedia.run(editor, 'bookmark', 'javascript:alert(1)')).toBe(false)
+    expect(insertMedia.run(editor, 'bookmark', 'data:text/html;base64,AAAA')).toBe(false)
+    expect(insertMedia.run(editor, 'bookmark', '/relative')).toBe(false)
+    expect(insertMedia.run(editor, 'bookmark', 'https://example.com/page')).toBe(true)
+    expect(mediaNode(editor).attrs.kind).toBe('bookmark')
+    const html = toHtml(editor.getJSON() as never)
+    expect(html).toContain('href="https://example.com/page"')
+    const back = fromHtml(html)
+    expect(JSON.stringify(back)).toContain('"kind":"bookmark"')
+    expect(toMarkdown(editor.getJSON() as never)).toContain('(https://example.com/page)')
+  })
+})

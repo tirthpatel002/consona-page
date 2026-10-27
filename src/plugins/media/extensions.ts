@@ -32,6 +32,7 @@ const num = (el: Element, name: string): number | null => {
 /** The element inside a parsed figure that carries the source for this kind. */
 function sourceOf(el: Element, kind: MediaKind): string {
   if (kind === 'embed') return el.getAttribute('data-src') ?? ''
+  if (kind === 'bookmark') return el.querySelector('a.page-media__bookmark')?.getAttribute('href') ?? ''
   if (kind === 'file') return el.querySelector('a[download], a[href]')?.getAttribute('href') ?? ''
   return el.querySelector(kind === 'image' ? 'img' : kind)?.getAttribute('src') ?? ''
 }
@@ -157,6 +158,19 @@ export const Media = Node.create({
           loading: 'lazy',
           tabindex: '0',
         },
+      ]
+    } else if (kind === 'bookmark') {
+      let host = src
+      try {
+        host = new URL(src).hostname.replace(/^www\./, '')
+      } catch {
+        /* keep the raw address */
+      }
+      frame = [
+        'a',
+        { class: 'page-media__bookmark', href: src, target: '_blank', rel: 'noopener noreferrer', title: src },
+        ['span', { class: 'page-media__bookmark-title' }, name || host],
+        ['span', { class: 'page-media__bookmark-url' }, src.replace(/^https?:\/\//i, '').slice(0, 80)],
       ]
     } else if (kind === 'file') {
       frame = [

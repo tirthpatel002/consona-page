@@ -102,6 +102,9 @@ function mediaToHtml(node: DocNode): string {
   else if (kind === 'audio') frame = `<audio src="${escapeHtml(src)}" controls></audio>`
   else if (kind === 'embed') {
     frame = `<iframe src="${escapeHtml(src)}" title="${escapeHtml(altAttr || 'Embedded video')}" sandbox="allow-scripts allow-same-origin allow-presentation" allow="fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
+  } else if (kind === 'bookmark') {
+    const label = name || src.replace(/^https?:\/\//i, '')
+    frame = `<a class="page-media__bookmark" href="${escapeHtml(src)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`
   } else if (kind === 'file') {
     const label = name || 'File'
     frame = `<a href="${escapeHtml(src)}" download="${escapeHtml(label)}">${escapeHtml(label)}${size !== null ? ` (${escapeHtml(formatBytes(size))})` : ''}</a>`
@@ -389,9 +392,11 @@ function mediaFromFigure(figure: Element): DocNode | null {
   const raw =
     kind === 'embed'
       ? (figure.getAttribute('data-src') ?? '')
-      : kind === 'file'
-        ? (figure.querySelector('a[href]')?.getAttribute('href') ?? '')
-        : (figure.querySelector(kind === 'image' ? 'img' : kind)?.getAttribute('src') ?? '')
+      : kind === 'bookmark'
+        ? (figure.querySelector('a.page-media__bookmark')?.getAttribute('href') ?? '')
+        : kind === 'file'
+          ? (figure.querySelector('a[href]')?.getAttribute('href') ?? '')
+          : (figure.querySelector(kind === 'image' ? 'img' : kind)?.getAttribute('src') ?? '')
   if (!raw) return null
   const widthAttr = figure.getAttribute('data-width')
   const caption = figure.querySelector('figcaption')

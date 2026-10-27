@@ -1,7 +1,7 @@
 import { isSafeMediaSource, isSafeUrl } from '../../editor/core'
 
-export type MediaKind = 'image' | 'video' | 'audio' | 'file' | 'embed'
-export const MEDIA_KINDS: readonly MediaKind[] = ['image', 'video', 'audio', 'file', 'embed']
+export type MediaKind = 'image' | 'video' | 'audio' | 'file' | 'embed' | 'bookmark'
+export const MEDIA_KINDS: readonly MediaKind[] = ['image', 'video', 'audio', 'file', 'embed', 'bookmark']
 
 export const asKind = (value: unknown): MediaKind => MEDIA_KINDS.find((k) => k === value) ?? 'image'
 
@@ -27,6 +27,8 @@ export function isSafeMediaSrc(kind: MediaKind, src: unknown): src is string {
   const value = src.trim()
   if (value === '') return false
   if (kind === 'embed') return isEmbedSrc(value)
+  // A bookmark is a plain link card: only an http(s) address, never data or relative sources.
+  if (kind === 'bookmark') return /^https?:\/\/\S+$/i.test(value) && isSafeUrl(value)
   // One central policy decides every non-embed source (data types per kind, http(s), relative paths).
   return isSafeMediaSource(kind, value)
 }

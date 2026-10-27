@@ -103,6 +103,7 @@ export const ACCEPT: Readonly<Record<MediaKind, string>> = {
   audio: 'audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/aac,audio/flac',
   file: '',
   embed: '',
+  bookmark: '',
 }
 
 /** Opens the system file chooser for a kind. */

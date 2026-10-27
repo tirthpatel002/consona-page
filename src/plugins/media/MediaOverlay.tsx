@@ -39,6 +39,7 @@ const KIND_TITLE: Readonly<Record<MediaKind, string>> = {
   audio: 'audio',
   file: 'file',
   embed: 'video',
+  bookmark: 'bookmark',
 }
 
 const SHAPE_LABEL: Readonly<Record<MediaShape, string>> = {
@@ -114,7 +115,7 @@ function SourcePanel({
   readonly onDone: () => void
 }) {
   const kind: MediaKind = panel.kind === 'embed' ? 'video' : panel.kind
-  const [tab, setTab] = useState(panel.tab)
+  const [tab, setTab] = useState<'upload' | 'link'>(panel.kind === 'bookmark' ? 'link' : panel.tab)
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
   const [progress, setProgress] = useState<number | null>(null)
@@ -196,6 +197,7 @@ function SourcePanel({
       }
       return void apply('video', value)
     }
+    if (kind === 'bookmark') return void apply('bookmark', value, { name: '' })
     if (kind === 'file') {
       const name = decodeURIComponent(value.split(/[?#]/)[0].split('/').pop() ?? '') || 'File'
       return void apply('file', value, { name, size: null })
@@ -211,7 +213,13 @@ function SourcePanel({
 
   return (
     <>
-      <div className="page-media-panel__tabs" role="tablist" aria-label="Source" onKeyDown={onTabKey}>
+      <div
+        className="page-media-panel__tabs"
+        role="tablist"
+        aria-label="Source"
+        onKeyDown={onTabKey}
+        hidden={kind === 'bookmark'}
+      >
         {(['upload', 'link'] as const).map((id) => (
           <button
             key={id}
@@ -292,7 +300,7 @@ function SourcePanel({
               onChange={(event) => setUrl(event.target.value)}
             />
             <button type="submit" disabled={url.trim() === ''}>
-              {panel.type === 'replace' ? 'Replace' : 'Embed'}
+              {panel.type === 'replace' ? 'Replace' : kind === 'bookmark' ? 'Add' : 'Embed'}
             </button>
           </form>
         )}

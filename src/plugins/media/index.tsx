@@ -23,6 +23,7 @@ const slashItems: readonly SlashItem[] = [
   insertItem('video', 'Video', ['video', 'movie', 'upload', 'youtube', 'vimeo', 'embed'], 'upload'),
   insertItem('audio', 'Audio', ['audio', 'music', 'sound', 'podcast', 'upload'], 'upload'),
   insertItem('file', 'File', ['file', 'attachment', 'document', 'pdf', 'upload'], 'upload'),
+  insertItem('bookmark', 'Bookmark', ['bookmark', 'link', 'url', 'website', 'card'], 'link'),
   insertItem('image', 'Image from link', ['image', 'url', 'link'], 'link'),
   insertItem('video', 'Video from link', ['video', 'url', 'link', 'youtube', 'vimeo', 'embed'], 'link'),
   insertItem('audio', 'Audio from link', ['audio', 'url', 'link'], 'link'),

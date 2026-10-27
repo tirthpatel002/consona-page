@@ -199,7 +199,15 @@ function mediaToDocx(node: DocNode, ctx: Context, out: string[]): void {
   } else if (src) {
     // Word has no player, file or embed; keep the address (or file name) as visible text.
     const label =
-      kind === 'video' || kind === 'embed' ? 'Video' : kind === 'audio' ? 'Audio' : kind === 'file' ? 'File' : 'Image'
+      kind === 'video' || kind === 'embed'
+        ? 'Video'
+        : kind === 'audio'
+          ? 'Audio'
+          : kind === 'file'
+            ? 'File'
+            : kind === 'bookmark'
+              ? 'Link'
+              : 'Image'
     const shown =
       kind === 'embed' ? embedOriginal(src) : kind === 'file' ? (stringAttr(node, 'name') ?? '') || src : src
     out.push(para(textRun(`[${label}: ${shown.startsWith('data:') ? 'embedded data' : shown}]`, [], false)))

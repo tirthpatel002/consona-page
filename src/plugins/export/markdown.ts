@@ -155,6 +155,7 @@ export function blockToMarkdown(node: DocNode): string[] {
         const page = embedOriginal(src)
         return page ? [`[${escapeText(caption || 'Video')}](${page})`] : []
       }
+      if (kind === 'bookmark') return src ? [`[${escapeText(caption || src)}](${src})`] : []
       if (kind === 'file') {
         const name = (stringAttr(node, 'name') ?? '').replace(/[[\]]/g, '') || 'File'
         return src ? [`[${name}](${src})`] : []
