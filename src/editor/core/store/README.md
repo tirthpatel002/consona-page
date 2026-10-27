@@ -101,4 +101,3 @@ Not built yet:
 - Icon buttons in the sidebar (they are text buttons).
 - Page order within a level is creation order only; there is no drag to reorder pages.
 - Checked in desktop Chrome and a 390 px viewport only.
-
