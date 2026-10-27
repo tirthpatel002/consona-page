@@ -17,6 +17,7 @@ import {
 } from './demoSession'
 import { PagesSidebar } from './PagesSidebar'
 import { StorageTools } from './StorageTools'
+import { AiTools } from './AiTools'
 import { PageToolbar } from './PageToolbar'
 import { inStack, SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
@@ -90,6 +91,9 @@ function Page({
       <div className="app-error-stack" ref={setErrorHost} />
       <PageBanner documentId={documentId} title={title} />
       <PageToolbar page={page} />
+      {page.editor && (
+        <AiTools editor={page.editor} pageId={documentId} engine={demoPagesEngine} settings={demoSettings} />
+      )}
       {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
       <SidecarStatus errorHost={errorHost} />
       {page.lockSaveFailed &&
@@ -267,6 +271,20 @@ export function App() {
     setOpen(false)
   }, [])
   useEffect(() => setOpenPageHandler(openPage), [openPage])
+  // After the open page is trashed: go to its live parent, else any live top-level page, else make a new one.
+  const openAfterTrash = async (parentId: string | null) => {
+    if (parentId) return openPage(parentId)
+    try {
+      const roots = await demoRegistry.children(null)
+      const live = roots[0]
+      if (live) return openPage(live.id)
+      const created = await demoRegistry.create({ title: 'Untitled' })
+      setVersion((v) => v + 1)
+      openPage(created.id)
+    } catch {
+      // The sidebar shows its own error; stay on the current page.
+    }
+  }
   if (!ready)
     return (
       <div className="app-frame app-status" role="status">
@@ -283,7 +301,7 @@ export function App() {
           currentId={currentId}
           onOpen={openPage}
           onChanged={() => setVersion((v) => v + 1)}
-          onCurrentTrashed={(parentId) => openPage(parentId ?? demoDocumentId)}
+          onCurrentTrashed={(parentId) => void openAfterTrash(parentId)}
           version={version}
         />
         <StorageTools currentId={currentId} />
