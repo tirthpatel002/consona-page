@@ -12,7 +12,9 @@ import {
 import { blockSelectionPlugin } from '../src/plugins/block-selection'
 import { commentsPlugin } from '../src/plugins/comments'
 import { createPersistencePlugin } from '../src/plugins/persistence'
-import { demoBlobs, demoSessionFor, getCurrentPageId } from './demoSession'
+import { demoBlobs, demoPages, demoRegistry, demoSessionFor, getCurrentPageId } from './demoSession'
+import { openPageById } from './navigation'
+import { createPagePreviewPlugin } from '../src/blocks/page-preview/plugin'
 import { emojiPlugin } from '../src/plugins/emoji'
 import { blockActionsPlugin } from '../src/plugins/block-actions'
 import { jsonViewPlugin } from '../src/plugins/json-view'
@@ -52,6 +54,13 @@ export const pagePlugins: readonly PagePlugin[] = [
   togglePlugin,
   cardPlugin,
   tablePlugin,
+  createPagePreviewPlugin({
+    registry: demoRegistry,
+    pages: demoPages,
+    blobs: demoBlobs,
+    pageId: getCurrentPageId,
+    onOpen: openPageById,
+  }),
   propsEditorPlugin,
   jsonViewPlugin,
 ]

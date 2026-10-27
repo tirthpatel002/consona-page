@@ -13,6 +13,9 @@ interface Row {
   readonly problem: string | null
 }
 
+/** Removal stays off until a lease or reference protocol can rule out unsaved writers in other tabs. */
+const SWEEP_ENABLED = false
+
 async function livePages(parentId: string | null, depth = 0): Promise<{ id: string; title: string }[]> {
   if (depth > 12) return []
   const out: { id: string; title: string }[] = []
@@ -101,8 +104,8 @@ export function StorageTools({ currentId }: { readonly currentId: string }) {
     <details className="storage-tools">
       <summary>Storage</summary>
       <p className="storage-tools__hint">
-        Works on pages other than the open one. Unused files are only removed once they are a day old and no page or
-        saved version refers to them, and not while another tab has unsaved changes.
+        Works on pages other than the open one. Unused files are reported but not removed: another tab or a page not yet
+        saved could still need an old file, and there is no way to rule that out here yet.
       </p>
       <button type="button" disabled={busy} onClick={() => void check()}>
         Check other pages
@@ -129,7 +132,7 @@ export function StorageTools({ currentId }: { readonly currentId: string }) {
                   Move files to storage
                 </button>
               )}
-              {(row.unused ?? 0) > 0 && (
+              {SWEEP_ENABLED && (row.unused ?? 0) > 0 && (
                 <button type="button" disabled={busy} onClick={() => void sweep(row)}>
                   Remove unused files
                 </button>

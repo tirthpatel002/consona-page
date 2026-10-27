@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { JSONContent } from '@tiptap/core'
 import { composePlugins, PageEditor, usePageController } from '../src/editor/core'
 import initialDoc from './content/initial-doc.json'
 import { PageBanner } from '../src/utils/banner/PageBanner'
 import {
   demoDocumentId,
+  demoBlobs,
+  demoPages,
   demoRegistry,
   demoSettings,
   getSidecarFailed,
@@ -20,6 +22,8 @@ import { inStack, SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
 import { ExportNotice } from './ExportNotice'
 import { demoPagesEngine } from './pagesEngine'
+import { openPageById, setOpenPageHandler } from './navigation'
+import { ChildPagePreviews } from '../src/blocks/page-preview'
 import { startTabResponder } from './tabCoordination'
 import { pagePlugins } from './plugins'
 import '../src/utils/banner/banner.css'
@@ -46,7 +50,9 @@ function Page({
   documentId,
   title,
   initialContent,
+  previewVersion,
 }: {
+  readonly previewVersion: number
   readonly documentId: string
   readonly title: string
   readonly initialContent: JSONContent
@@ -98,6 +104,14 @@ function Page({
         )}
       <ExportNotice host={errorHost} />
       <PageEditor page={page} />
+      <ChildPagePreviews
+        registry={demoRegistry}
+        pages={demoPages}
+        blobs={demoBlobs}
+        parentId={documentId}
+        version={previewVersion}
+        onOpen={openPageById}
+      />
     </div>
   )
 }
@@ -107,7 +121,15 @@ function Page({
  * already typed. A failed read does not open an editable sample, because the first save would
  * overwrite what is stored.
  */
-function PageLoader({ documentId, title }: { readonly documentId: string; readonly title: string }) {
+function PageLoader({
+  documentId,
+  title,
+  previewVersion,
+}: {
+  readonly documentId: string
+  readonly title: string
+  readonly previewVersion: number
+}) {
   const fallback = documentId === demoDocumentId ? (initialDoc as JSONContent) : EMPTY_DOC // same for a given id
   const [attempt, setAttempt] = useState(0)
   const [load, setLoad] = useState<Load>({ state: 'loading' })
@@ -195,7 +217,7 @@ function PageLoader({ documentId, title }: { readonly documentId: string; readon
       </div>
     )
   }
-  return <Page documentId={documentId} title={title} initialContent={load.content} />
+  return <Page documentId={documentId} title={title} initialContent={load.content} previewVersion={previewVersion} />
 }
 
 /** The page list on the left and the open page on the right. Opening another page remounts the editor. */
@@ -235,7 +257,7 @@ export function App() {
     }
   }, [currentId, version])
 
-  const openPage = (id: string) => {
+  const openPage = useCallback((id: string) => {
     try {
       localStorage.setItem(CURRENT_KEY, id)
     } catch {
@@ -243,7 +265,8 @@ export function App() {
     }
     setCurrentId(id)
     setOpen(false)
-  }
+  }, [])
+  useEffect(() => setOpenPageHandler(openPage), [openPage])
   if (!ready)
     return (
       <div className="app-frame app-status" role="status">
@@ -266,7 +289,12 @@ export function App() {
         <StorageTools currentId={currentId} />
       </div>
       <main className="app-main">
-        <PageLoader key={currentId} documentId={currentId} title={titles[currentId] ?? 'Page'} />
+        <PageLoader
+          key={currentId}
+          documentId={currentId}
+          title={titles[currentId] ?? 'Page'}
+          previewVersion={version}
+        />
       </main>
     </div>
   )

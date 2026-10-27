@@ -65,6 +65,8 @@ export const TURN_INTO_UNSUPPORTED: Readonly<Record<string, string>> = {
   breadcrumb:
     'items are structured {label, href} links; plain text has no meaningful mapping and a guessed href could send the wrong destination',
   tabs: 'tabs are structured titled panels; plain text has no meaningful mapping',
+  pageReference:
+    'a page reference holds only a page id; turning it into text would lose the link and a guessed title could go stale',
 }
 
 /** True when a conversion accepts every one of `targets` (intersection - never a silent subset). */
