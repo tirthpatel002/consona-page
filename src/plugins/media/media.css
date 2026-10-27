@@ -536,6 +536,13 @@
   top: calc(100% + 6px);
 }
 
+/* Video and embeds: the bar sits on the top edge of the picture, clear of the player's bottom controls. */
+.tiptap .page-media__toolbar-slot[data-placement='inside'] {
+  bottom: auto;
+  top: 8px;
+  left: 8px;
+}
+
 /* Broken source: keep the block visible with a plain notice (the caption and everything else stay). */
 .tiptap .page-media__frame[data-broken] {
   display: flex;

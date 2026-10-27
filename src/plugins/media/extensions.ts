@@ -186,12 +186,22 @@ export const Media = Node.create({
           if (contentDOM && contentDOM.contains(mutation.target)) return false
           return true
         },
-        stopEvent: (event) =>
-          event.target instanceof Element &&
-          (event.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null ||
-            // Players, the link chip and the alt badge handle their own presses and keys.
-            (event.target.closest('audio, video, iframe, a, .page-media__alt') !== null &&
-              event.target.closest('figcaption') === null)),
+        stopEvent: (event) => {
+          // Presses on the picture of a video (above its native controls strip) select the block.
+          if (
+            event instanceof MouseEvent &&
+            event.target instanceof HTMLVideoElement &&
+            event.clientY <= event.target.getBoundingClientRect().bottom - 56
+          )
+            return false
+          return (
+            event.target instanceof Element &&
+            (event.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null ||
+              // Players, the link chip and the alt badge handle their own presses and keys.
+              (event.target.closest('audio, video, iframe, a, .page-media__alt') !== null &&
+                event.target.closest('figcaption') === null))
+          )
+        },
       }
     }
   },

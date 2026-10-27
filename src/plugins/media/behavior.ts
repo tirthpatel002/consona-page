@@ -76,7 +76,13 @@ export const MediaBehavior = Extension.create({
           handleClickOn: (view, _pos, node, nodePos, event) => {
             if (node.type.name !== MEDIA_NODE || !(event.target instanceof Element)) return false
             if (!event.target.closest('.page-media__frame')) return false
-            if (event.target.closest('.page-media__resize, a, audio, video, button')) return false
+            if (event.target.closest('.page-media__resize, a, audio, button')) return false
+            // A video's native controls keep their presses; the rest of the picture selects the block.
+            const player = event.target.closest('video')
+            if (player) {
+              const box = player.getBoundingClientRect()
+              if (event.clientY > box.bottom - 56) return false
+            }
             if (view.state.selection instanceof NodeSelection && view.state.selection.from === nodePos) {
               view.focus()
               return true
@@ -278,13 +284,16 @@ function attachResize(view: EditorView, editor: Editor) {
     delete slot.dataset.placement
     const host = view.dom.getBoundingClientRect()
     slot.style.maxWidth = `${Math.max(120, Math.floor(host.width))}px`
-    const rect = slot.getBoundingClientRect()
+    let rect = slot.getBoundingClientRect()
     if (rect.width === 0) return
     // Above the block unless that would slide under the sticky toolbar or off the top of the window.
     const toolbarBottom = document.querySelector('.page-toolbar')?.getBoundingClientRect().bottom ?? 0
-    if (rect.top < Math.max(toolbarBottom, 0) + 4) {
-      slot.dataset.placement = 'below'
-    }
+    // A bar above a video or audio block would cover the native controls of the block above it, so those kinds
+    // keep it inside the picture (video, controls sit at the bottom) or below it (audio, the whole block is controls).
+    const kind = slot.closest<HTMLElement>('.page-media')?.dataset.kind
+    if (kind === 'video' || kind === 'embed') slot.dataset.placement = 'inside'
+    else if (kind === 'audio' || rect.top < Math.max(toolbarBottom, 0) + 4) slot.dataset.placement = 'below'
+    rect = slot.getBoundingClientRect()
     const left = host.left
     const right = host.right
     let shift = 0

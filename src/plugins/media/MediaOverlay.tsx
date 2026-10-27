@@ -129,8 +129,12 @@ function SourcePanel({
 
   useEffect(() => () => abort.current?.abort(), [])
   useEffect(() => {
-    if (tab === 'link') urlInput.current?.focus()
-    else fileInput.current?.focus()
+    // After the menu that opened this panel has handed focus back to its button.
+    const frame = requestAnimationFrame(() => {
+      if (tab === 'link') urlInput.current?.focus()
+      else fileInput.current?.focus()
+    })
+    return () => cancelAnimationFrame(frame)
   }, [tab])
 
   const apply = (
@@ -338,7 +342,14 @@ function TextPanel({
   const [value, setValue] = useState(initial)
   const [error, setError] = useState('')
   const ref = useRef<HTMLInputElement>(null)
-  useEffect(() => ref.current?.select(), [])
+  // Focus after the menu that opened this panel has finished handing focus back to its button.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      ref.current?.focus()
+      ref.current?.select()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [])
   const save = (next: string) => {
     const trimmed = next.trim()
     if (!isAlt && trimmed !== '' && !isSafeLink(trimmed)) {
@@ -403,6 +414,11 @@ function CropPanel({
   const [x, setX] = useState(Number(attrs.focusX ?? 50))
   const [y, setY] = useState(Number(attrs.focusY ?? 50))
   const ids = useId()
+  const shapes = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => shapes.current?.querySelector('button')?.focus())
+    return () => cancelAnimationFrame(frame)
+  }, [])
   const style = { '--media-zoom': zoom, '--media-x': `${x}%`, '--media-y': `${y}%` } as React.CSSProperties
   const range = (
     label: string,
@@ -431,7 +447,7 @@ function CropPanel({
       <div className="page-media-crop" data-shape={shape} data-zoom={zoom !== 1 ? zoom : undefined} style={style}>
         <img src={shown} alt="" draggable={false} />
       </div>
-      <div className="page-media-panel__shapes" role="group" aria-label="Shape">
+      <div ref={shapes} className="page-media-panel__shapes" role="group" aria-label="Shape">
         {SHAPES.map((id) => (
           <button key={id} type="button" aria-pressed={shape === id} onClick={() => setShape(id)}>
             {SHAPE_LABEL[id]}
