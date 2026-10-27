@@ -483,15 +483,9 @@
   font-weight: 600;
 }
 
-/* A selected media block keeps a neutral look: no tinted fill over the picture or caption, a plain outline instead. */
+/* A selected media block keeps the core selection fill, but neutral grey instead of a tint. */
 .tiptap .page-media.ProseMirror-selectednode {
-  --page-highlight-fill: transparent;
-  --page-selection-fill: transparent;
-  background: transparent;
-}
-.tiptap .page-media.ProseMirror-selectednode .page-media__frame {
-  outline: 2px solid var(--page-fg);
-  outline-offset: 2px;
+  --page-highlight-fill: var(--page-hover-fill);
 }
 
 /* Bookmark: a link card (client-side only; no page is fetched for a preview). */

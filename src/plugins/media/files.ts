@@ -1,3 +1,5 @@
+import { BlobLimitError } from '../../editor/core'
+import { blobRefFor, mediaHost } from './host'
 import { type MediaKind, dataMime, isAllowedFileMime } from './sources'
 
 /** Largest file embedded in the document as a data URL (there is no upload backend yet). */
@@ -56,7 +58,8 @@ export function kindOfAny(file: { type: string; name: string }): MediaKind | nul
 }
 
 export type ReadResult =
-  { ok: true; src: string; name: string; size: number } | { ok: false; reason: string; cancelled?: boolean }
+  | { ok: true; src: string; name: string; size: number; blob?: string }
+  | { ok: false; reason: string; cancelled?: boolean }
 
 export interface ReadOptions {
   readonly onProgress?: (fraction: number) => void
@@ -120,3 +123,44 @@ export function chooseFile(kind: MediaKind): Promise<File | null> {
 
 /** The `accept` list for a file input of this kind (empty = any type; the type is checked after choosing). */
 export const chooseFileAccept = (kind: MediaKind): string => ACCEPT[kind]
+
+const mb = (bytes: number): string => `${Math.round((bytes / 1024 / 1024) * 10) / 10} MB`
+
+/** The plain message shown when the file store refuses a file (always names the limit). */
+export function blobRefusal(error: unknown, name: string): string {
+  if (error instanceof BlobLimitError) {
+    if (error.code === 'too_large') return `${name} is larger than the ${mb(error.limit)} limit for one file.`
+    if (error.code === 'page_limit')
+      return `This page has reached its ${mb(error.limit)} limit for files. Remove one first.`
+    return `${name} is not a type that can be stored in a page.`
+  }
+  return `Could not store ${name}. Try again.`
+}
+
+/**
+ * Reads a chosen file for a block: into the host's file store when there is one (the block keeps only a
+ * stable reference), else inline as a data URL. A refused file inserts nothing.
+ */
+export async function importFile(file: File, options: ReadOptions = {}): Promise<ReadResult> {
+  const { blobs, pageId } = mediaHost()
+  if (!blobs) return readAsDataUrl(file, options)
+  if (options.signal?.aborted) return { ok: false, reason: 'Cancelled', cancelled: true }
+  const kind = kindOfFile(file)
+  const type = kind ? file.type : (fileBlockMime(file) ?? '')
+  if (!type) return { ok: false, reason: `${file.name || 'This file'} is not a type that can be stored in a page.` }
+  try {
+    options.onProgress?.(0.1)
+    const stored = await blobs.put(pageId?.() ?? 'page', new Blob([file], { type }))
+    if (options.signal?.aborted) {
+      await blobs.remove(stored.id)
+      return { ok: false, reason: 'Cancelled', cancelled: true }
+    }
+    options.onProgress?.(1)
+    return { ok: true, src: '', blob: blobRefFor(stored.id), name: file.name, size: file.size }
+  } catch (error) {
+    return { ok: false, reason: blobRefusal(error, file.name || 'This file') }
+  }
+}
+
+/** The largest file a block accepts: the store's per-file limit, else the inline cap. */
+export const uploadLimitBytes = (): number => mediaHost().blobs?.limits.maxFileBytes ?? MAX_EMBED_BYTES

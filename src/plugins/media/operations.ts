@@ -1,6 +1,7 @@
 import { NodeSelection, type EditorState, type Transaction } from '@tiptap/pm/state'
 import { defineOperation } from '../../editor/core'
 import { MEDIA_NODE, type MediaAlign } from './extensions'
+import { isBlobRef } from './host'
 import {
   asFocus,
   asKind,
@@ -11,6 +12,10 @@ import {
   type MediaKind,
   type MediaShape,
 } from './sources'
+
+/** A source is an allowlisted address, or (for stored files) an empty one beside a valid `blob:` reference. */
+const hasSource = (kind: MediaKind, src: string, blob: string | undefined): boolean =>
+  isSafeMediaSrc(kind, src) || (src === '' && isBlobRef(blob) && ['image', 'video', 'audio', 'file'].includes(kind))
 
 /** Changes the attributes of the block at `pos` and keeps it selected if it was (a node change would otherwise drop the selection). */
 function changeAttrs(state: EditorState, tr: Transaction, pos: number, attrs: Record<string, unknown>): void {
@@ -26,6 +31,8 @@ export interface MediaExtras {
   readonly size?: number | null
   readonly showCaption?: boolean
   readonly link?: string
+  /** Reference to a file in the host's store (`blob:<id>`); the source is then empty. */
+  readonly blob?: string
 }
 
 /** Inserts a media block at `at` (default: replaces an empty paragraph at the caret, else goes after the current block). */
@@ -34,7 +41,7 @@ export const insertMedia = defineOperation(
   (chain, kind: MediaKind, src: string, at?: number, extras?: MediaExtras) =>
     chain.command(({ state, tr, dispatch }) => {
       const type = state.schema.nodes[MEDIA_NODE]
-      if (!type || !isSafeMediaSrc(kind, src)) return false
+      if (!type || !hasSource(kind, src, extras?.blob)) return false
       if (dispatch) {
         const node = type.create({ kind, src, ...extras })
         let pos = at
@@ -94,9 +101,10 @@ export const setMediaSource = defineOperation(
       const node = state.doc.nodeAt(pos)
       if (node?.type.name !== MEDIA_NODE) return false
       const nextKind = kind ?? asKind(node.attrs.kind)
-      if (!isSafeMediaSrc(nextKind, src)) return false
-      if (src === node.attrs.src && nextKind === node.attrs.kind) return false
-      if (dispatch) changeAttrs(state, tr, pos, { ...node.attrs, ...extras, src, kind: nextKind })
+      if (!hasSource(nextKind, src, extras?.blob)) return false
+      if (src === node.attrs.src && nextKind === node.attrs.kind && (extras?.blob ?? '') === (node.attrs.blob ?? ''))
+        return false
+      if (dispatch) changeAttrs(state, tr, pos, { ...node.attrs, blob: '', ...extras, src, kind: nextKind })
       return true
     }),
 )

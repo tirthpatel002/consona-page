@@ -1,3 +1,4 @@
+import { isBlobRef } from '../media/host'
 import { asFocus, asKind, asShape, asZoom, formatBytes, isSafeLink, isSafeMediaSrc } from '../media/sources'
 import { printStyles } from './printStyles'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
@@ -82,6 +83,9 @@ function mediaToHtml(node: DocNode): string {
   const kind = asKind(stringAttr(node, 'kind'))
   const rawSrc = stringAttr(node, 'src') ?? ''
   const src = isSafeMediaSrc(kind, rawSrc) ? rawSrc : ''
+  if (!src && isBlobRef(stringAttr(node, 'blob'))) {
+    return `<p>[${escapeHtml(stringAttr(node, 'name') || 'File')}: stored in the page's file store, not included in this export]</p>`
+  }
   const width = numberAttr(node, 'width')
   const full = (node.attrs as { full?: unknown } | undefined)?.full === true
   const align = stringAttr(node, 'align') ?? 'center'

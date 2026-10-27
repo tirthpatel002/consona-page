@@ -1,6 +1,7 @@
 import type { BlockAction, PagePlugin, SlashItem } from '../../editor/core'
 import { MediaBehavior } from './behavior'
 import { Media, MEDIA_NODE, type MediaAlign } from './extensions'
+import { setMediaHost, type MediaHost } from './host'
 import { MediaOverlay } from './MediaOverlay'
 import { mediaToolbars } from './mediaToolbar'
 import { setMediaLayout } from './operations'
@@ -69,11 +70,23 @@ const blockActions: readonly BlockAction[] = [
  * Images, video, audio, files and embedded video: one native block with an optional caption, an insert
  * panel (upload or link), paste/drop, resize, alignment, crop, alt text, link and a contextual bar.
  */
-export const mediaPlugin: PagePlugin = {
+const buildPlugin = (): PagePlugin => ({
   id: 'media',
   extensions: [Media, MediaBehavior],
   slashItems,
   blockActions,
   blockToolbars: mediaToolbars,
   overlays: [{ id: 'media:panels', render: () => <MediaOverlay /> }],
+})
+
+/** The media plugin with no file store: uploads stay inline in the document (data URLs). */
+export const mediaPlugin: PagePlugin = buildPlugin()
+
+/**
+ * The media plugin wired to a host file store. Uploads then go to `blobs` and the block keeps a `blob:<id>`
+ * reference; a refused file shows its limit and inserts nothing. One host per page of the app.
+ */
+export function createMediaPlugin(host: MediaHost = {}): PagePlugin {
+  setMediaHost(host)
+  return buildPlugin()
 }

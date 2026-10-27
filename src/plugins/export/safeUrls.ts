@@ -16,6 +16,10 @@ export function sanitizeImported(doc: Doc): Doc {
       if (!isSafeUrl(href)) return undefined
     }
     let dropLink = false
+    if (value.type === 'media' && (value.attrs as { blob?: unknown } | undefined)?.blob) {
+      // A file reference only means something inside the page store that wrote it; imports never carry files.
+      value = { ...value, attrs: { ...(value.attrs as { [key: string]: Json }), blob: '' } }
+    }
     if (value.type === 'media' && typeof (value.attrs as { src?: unknown } | undefined)?.src === 'string') {
       const attrs = value.attrs as { src: string; kind?: unknown; link?: unknown }
       if (!isSafeMediaSrc(asKind(attrs.kind), attrs.src)) return undefined

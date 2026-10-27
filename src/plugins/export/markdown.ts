@@ -1,3 +1,4 @@
+import { isBlobRef } from '../media/host'
 import { asKind, embedOriginal, isSafeMediaSrc } from '../media/sources'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
 
@@ -145,6 +146,13 @@ export function blockToMarkdown(node: DocNode): string[] {
       const kind = asKind(stringAttr(node, 'kind'))
       const rawSrc = stringAttr(node, 'src') ?? ''
       const src = isSafeMediaSrc(kind, rawSrc) ? rawSrc : ''
+      if (!src && isBlobRef(stringAttr(node, 'blob'))) {
+        return [
+          escapeText(
+            `[${stringAttr(node, 'name') || 'File'}: stored in the page's file store, not included in this export]`,
+          ),
+        ]
+      }
       const alt = stringAttr(node, 'alt') ?? ''
       const showCaption = (node.attrs as { showCaption?: unknown } | undefined)?.showCaption !== false
       const caption = showCaption ? textOf({ type: 'media', content: node.content }) : ''

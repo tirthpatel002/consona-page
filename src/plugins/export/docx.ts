@@ -1,3 +1,4 @@
+import { isBlobRef } from '../media/host'
 import { embedOriginal } from '../media/sources'
 import { imageSize } from './imageSize'
 import { numberAttr, stringAttr, textOf, type Doc, type DocMark, type DocNode } from './types'
@@ -167,6 +168,18 @@ const MAX_IMAGE_PX = 600
 function mediaToDocx(node: DocNode, ctx: Context, out: string[]): void {
   const kind = stringAttr(node, 'kind') ?? 'image'
   const src = stringAttr(node, 'src') ?? ''
+  if (!src && isBlobRef(stringAttr(node, 'blob'))) {
+    out.push(
+      para(
+        textRun(
+          `[${stringAttr(node, 'name') || 'File'}: stored in the page's file store, not included in this export]`,
+          [],
+          false,
+        ),
+      ),
+    )
+    return
+  }
   const caption =
     (node.attrs as { showCaption?: unknown } | undefined)?.showCaption === false
       ? ''

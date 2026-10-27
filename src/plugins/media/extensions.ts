@@ -1,5 +1,6 @@
 import { mergeAttributes, Node } from '@tiptap/core'
 import { DOMSerializer } from '@tiptap/pm/model'
+import { acquireBlobUrl, isBlobRef, releaseBlobUrl } from './host'
 import {
   asFocus,
   asKind,
@@ -79,6 +80,10 @@ export const Media = Node.create({
       focusX: attr('focusX', 50, (el) => asFocus(num(el, 'data-focus-x'))),
       focusY: attr('focusY', 50, (el) => asFocus(num(el, 'data-focus-y'))),
       full: attr('full', false, (el) => el.getAttribute('data-full') === 'true'),
+      blob: attr('blob', '', (el) => {
+        const ref = el.getAttribute('data-blob') ?? ''
+        return isBlobRef(ref) && asKind(el.getAttribute('data-kind')) !== 'embed' ? ref : ''
+      }),
       name: attr('name', '', (el) => asText(el.getAttribute('data-name'), 200)),
       size: attr('size', null, (el) => asSize(num(el, 'data-size'))),
     }
@@ -96,9 +101,35 @@ export const Media = Node.create({
         return DOMSerializer.renderSpec(document, spec)
       }
       const { dom, contentDOM } = render(current)
+      // A stored file shows through an object URL held only while this block exists (revoked on destroy).
+      let heldRef = ''
+      let heldUrl = ''
+      const showHeld = () => {
+        if (!heldUrl) return
+        const media = (dom as HTMLElement).querySelector('img, video, audio')
+        if (media && media.getAttribute('src') !== heldUrl) media.setAttribute('src', heldUrl)
+      }
+      const syncBlob = (node: typeof initial) => {
+        const ref = isBlobRef(node.attrs.blob) && !node.attrs.src ? node.attrs.blob : ''
+        if (ref === heldRef) return showHeld()
+        if (heldRef) releaseBlobUrl(heldRef)
+        heldRef = ref
+        heldUrl = ''
+        if (!ref) return
+        void acquireBlobUrl(ref).then((url) => {
+          if (heldRef !== ref || !url) return
+          heldUrl = url
+          showHeld()
+        })
+      }
+      syncBlob(current)
       return {
         dom,
         contentDOM,
+        destroy: () => {
+          if (heldRef) releaseBlobUrl(heldRef)
+          heldRef = ''
+        },
         update: (next) => {
           if (next.type !== current.type) return false
           current = next
@@ -111,6 +142,7 @@ export const Media = Node.create({
           const frame = figure.querySelector('.page-media__frame')
           const freshFrame = fresh.querySelector('.page-media__frame')
           if (frame && freshFrame) frame.replaceWith(freshFrame)
+          syncBlob(next)
           return true
         },
         ignoreMutation: (mutation) => {
@@ -143,8 +175,10 @@ export const Media = Node.create({
     const captionOn = node.attrs.showCaption !== false
 
     let frame: unknown[]
-    if (kind === 'video') frame = ['video', { src, controls: '', preload: 'metadata' }]
-    else if (kind === 'audio') frame = ['audio', { src, controls: '', preload: 'metadata' }]
+    // A stored file has no source here; the node view gives it an object URL while the block is on screen.
+    const withSrc = <T extends Record<string, string>>(attrs: T) => (src ? { src, ...attrs } : attrs)
+    if (kind === 'video') frame = ['video', withSrc({ controls: '', preload: 'metadata' })]
+    else if (kind === 'audio') frame = ['audio', withSrc({ controls: '', preload: 'metadata' })]
     else if (kind === 'embed') {
       frame = [
         'iframe',
@@ -183,12 +217,11 @@ export const Media = Node.create({
     } else {
       frame = [
         'img',
-        {
-          src,
+        withSrc({
           alt,
           draggable: 'false',
           style: `--media-zoom: ${zoom}; --media-x: ${fx}%; --media-y: ${fy}%`,
-        },
+        }),
       ]
     }
 
@@ -233,6 +266,7 @@ export const Media = Node.create({
     if (kind === 'embed') attrs['data-src'] = src
     if (kind === 'embed') attrs['data-original'] = embedOriginal(src)
     if (name) attrs['data-name'] = name
+    if (isBlobRef(node.attrs.blob) && !['embed', 'bookmark'].includes(kind)) attrs['data-blob'] = node.attrs.blob
     if (typeof node.attrs.commentThread === 'string' && node.attrs.commentThread) {
       attrs['data-comment-thread'] = node.attrs.commentThread
     }

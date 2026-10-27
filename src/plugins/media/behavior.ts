@@ -2,7 +2,7 @@ import { Extension, type Editor } from '@tiptap/core'
 import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
 import { MEDIA_NODE } from './extensions'
-import { kindOfAny, kindOfFile, kindOfUrl, readAsDataUrl } from './files'
+import { kindOfAny, kindOfFile, kindOfUrl, importFile } from './files'
 import { insertMedia, setMediaLayout } from './operations'
 import { openPanel } from './panelStore'
 import { clamp, type MediaKind } from './sources'
@@ -23,12 +23,16 @@ export async function insertFiles(
   for (const file of files) {
     const kind = kindOfAny(file)
     if (!kind) continue
-    const result = await readAsDataUrl(file)
+    const result = await importFile(file)
     if (!result.ok) {
       onProblem(result.reason)
       continue
     }
-    const extras = kind === 'file' ? { name: file.name, size: file.size, showCaption: false } : { showCaption: false }
+    const extras = {
+      showCaption: false,
+      ...(kind === 'file' ? { name: file.name, size: file.size } : {}),
+      ...(result.blob ? { blob: result.blob } : {}),
+    }
     if (insertMedia.run(editor, kind, result.src, position, extras)) {
       inserted += 1
       if (position !== undefined) position = editor.state.selection.to

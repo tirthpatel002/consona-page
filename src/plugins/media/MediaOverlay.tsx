@@ -17,9 +17,10 @@ import {
   kindOfAny,
   kindOfFile,
   kindOfUrl,
-  MAX_EMBED_BYTES,
-  readAsDataUrl,
+  importFile,
+  uploadLimitBytes,
 } from './files'
+import { useMediaSrc } from './host'
 import { insertMedia, setMediaDetails, setMediaSource } from './operations'
 import { closePanel, panelStore, type MediaPanel } from './panelStore'
 import {
@@ -132,7 +133,11 @@ function SourcePanel({
     else fileInput.current?.focus()
   }, [tab])
 
-  const apply = (target: MediaKind, src: string, extras: { name?: string; size?: number | null } = {}) => {
+  const apply = (
+    target: MediaKind,
+    src: string,
+    extras: { name?: string; size?: number | null; blob?: string } = {},
+  ) => {
     const ok =
       panel.type === 'replace'
         ? setMediaSource.run(editor, panel.pos, src, target, extras)
@@ -160,14 +165,14 @@ function SourcePanel({
       )
       return
     }
-    if (file.size > MAX_EMBED_BYTES) {
-      setError(`${file.name} is larger than ${MAX_EMBED_BYTES / 1024 / 1024} MB.`)
+    if (file.size > uploadLimitBytes()) {
+      setError(`${file.name} is larger than ${uploadLimitBytes() / 1024 / 1024} MB.`)
       return
     }
     const controller = new AbortController()
     abort.current = controller
     setProgress(0)
-    const result = await readAsDataUrl(file, { onProgress: setProgress, signal: controller.signal })
+    const result = await importFile(file, { onProgress: setProgress, signal: controller.signal })
     abort.current = null
     if (controller.signal.aborted) return
     setProgress(null)
@@ -175,7 +180,10 @@ function SourcePanel({
       setError(result.reason)
       return
     }
-    apply(kind, result.src, kind === 'file' ? { name: result.name, size: result.size } : {})
+    apply(kind, result.src, {
+      ...(kind === 'file' ? { name: result.name, size: result.size } : {}),
+      ...(result.blob ? { blob: result.blob } : {}),
+    })
   }
 
   const cancel = () => {
@@ -276,7 +284,7 @@ function SourcePanel({
                   if (file) void accept(file)
                 }}
               />
-              <p>Or drop a file here. Up to {MAX_EMBED_BYTES / 1024 / 1024} MB.</p>
+              <p>Or drop a file here. Up to {uploadLimitBytes() / 1024 / 1024} MB.</p>
             </div>
           )
         ) : (
@@ -389,6 +397,7 @@ function CropPanel({
 }) {
   const node = editor.state.doc.nodeAt(pos)
   const attrs = node?.attrs ?? {}
+  const shown = useMediaSrc(attrs.src, attrs.blob)
   const [shape, setShape] = useState<MediaShape>((attrs.shape as MediaShape) ?? 'none')
   const [zoom, setZoom] = useState(Number(attrs.zoom ?? 1))
   const [x, setX] = useState(Number(attrs.focusX ?? 50))
@@ -420,7 +429,7 @@ function CropPanel({
   return (
     <div className="page-media-panel__crop">
       <div className="page-media-crop" data-shape={shape} data-zoom={zoom !== 1 ? zoom : undefined} style={style}>
-        <img src={String(attrs.src ?? '')} alt="" draggable={false} />
+        <img src={shown} alt="" draggable={false} />
       </div>
       <div className="page-media-panel__shapes" role="group" aria-label="Shape">
         {SHAPES.map((id) => (
@@ -470,6 +479,7 @@ function Fullscreen({
   readonly onClose: () => void
 }) {
   const attrs = editor.state.doc.nodeAt(pos)?.attrs
+  const shown = useMediaSrc(attrs?.src, attrs?.blob)
   const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     closeRef.current?.focus()
@@ -522,7 +532,7 @@ function Fullscreen({
           <Icon name="close" size={16} strokeWidth={lucideStrokeForSize(16, 2)} />
         </button>
         <div className="page-media-crop" data-shape={String(attrs.shape ?? 'none')} style={style}>
-          <img src={String(attrs.src)} alt={String(attrs.alt ?? '')} />
+          <img src={shown} alt={String(attrs.alt ?? '')} />
         </div>
         {attrs.alt ? <p>{String(attrs.alt)}</p> : null}
       </div>

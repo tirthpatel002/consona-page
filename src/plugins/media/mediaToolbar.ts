@@ -4,6 +4,7 @@ import { type BlockToolbarAction, type BlockToolbarDefinition, type BlockToolbar
 import { commentsUi } from '../comments/uiStore'
 import { MEDIA_NODE, MEDIA_TOOLBAR_SLOT, type MediaAlign } from './extensions'
 import { deleteMedia, setMediaDetails, setMediaLayout } from './operations'
+import { isBlobRef, readBlob } from './host'
 import { openPanel } from './panelStore'
 import { asKind, embedOriginal, isHttpUrl, isSafeMediaSrc, type MediaKind } from './sources'
 
@@ -12,6 +13,7 @@ interface Found {
   readonly src: string
   readonly kind: MediaKind
   readonly name: string
+  readonly blob: string
 }
 
 const describe = (node: { attrs: Record<string, unknown> }, pos: number): Found => ({
@@ -19,6 +21,7 @@ const describe = (node: { attrs: Record<string, unknown> }, pos: number): Found 
   src: String(node.attrs.src ?? ''),
   kind: asKind(node.attrs.kind),
   name: String(node.attrs.name ?? ''),
+  blob: isBlobRef(node.attrs.blob) ? node.attrs.blob : '',
 })
 
 /** The media block holding the selection (selected as a block, or the caret in its caption). */
@@ -67,6 +70,15 @@ export const downloadSource = async (src: string, kind: MediaKind = 'image', nam
   } catch {
     openOriginal(src)
   }
+}
+
+/** Saves a stored file through a short-lived object URL. */
+const downloadBlob = async (ref: string, name: string): Promise<void> => {
+  const blob = await readBlob(ref)
+  if (!blob) return
+  const url = URL.createObjectURL(blob)
+  saveAs(url, name)
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
 const currentOf = (editor: Editor) => findSelectedMedia(editor)
@@ -124,12 +136,17 @@ const download: BlockToolbarAction = {
   can: (editor) => {
     const found = currentOf(editor)
     return (
-      found !== null && found.kind !== 'embed' && found.kind !== 'bookmark' && isSafeMediaSrc(found.kind, found.src)
+      found !== null &&
+      found.kind !== 'embed' &&
+      found.kind !== 'bookmark' &&
+      (found.blob !== '' || isSafeMediaSrc(found.kind, found.src))
     )
   },
   run: (editor) => {
     const found = currentOf(editor)
-    if (found) void downloadSource(found.src, found.kind, found.name)
+    if (!found) return
+    if (found.blob) return void downloadBlob(found.blob, found.name)
+    void downloadSource(found.src, found.kind, found.name)
   },
 }
 
