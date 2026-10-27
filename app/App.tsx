@@ -7,6 +7,7 @@ import {
   demoDocumentId,
   demoRegistry,
   demoSettings,
+  getSidecarFailed,
   loadDemoPage,
   MissingPageError,
   openOlderLocalCopy,
@@ -19,6 +20,7 @@ import { inStack, SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
 import { ExportNotice } from './ExportNotice'
 import { demoPagesEngine } from './pagesEngine'
+import { startTabResponder } from './tabCoordination'
 import { pagePlugins } from './plugins'
 import '../src/utils/banner/banner.css'
 
@@ -54,7 +56,26 @@ function Page({
   const openEditor = page.editor
   useEffect(() => {
     if (!openEditor) return
-    return demoPagesEngine.attach(documentId, openEditor)
+    const detach = demoPagesEngine.attach(documentId, openEditor)
+    // Other tabs ask before deleting files: this tab is "dirty" while saving, after a failure and for a few seconds after an edit.
+    let lastEdit = 0
+    const onUpdate = () => {
+      lastEdit = Date.now()
+    }
+    openEditor.on('update', onUpdate)
+    const responder = startTabResponder(() => {
+      const status = openEditor.storage.docPersistence?.status as string | undefined
+      return (
+        Date.now() - lastEdit < 5000 ||
+        (status !== undefined && status !== 'idle' && status !== 'saved') ||
+        getSidecarFailed()
+      )
+    })
+    return () => {
+      detach()
+      openEditor.off('update', onUpdate)
+      responder.stop()
+    }
   }, [openEditor, documentId])
   // Errors from every status component gather in one fixed stack, so two at once never cover each other.
   const [errorHost, setErrorHost] = useState<HTMLElement | null>(null)

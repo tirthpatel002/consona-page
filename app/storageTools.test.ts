@@ -6,6 +6,7 @@ import {
   type JsonObject,
   type SidecarStorage,
 } from '../src/editor/core'
+const DAY = 24 * 60 * 60 * 1000
 import { countInlineFiles, migratePageFiles, scanOrphans, sweepOrphans } from './storageTools'
 
 const PNG =
@@ -98,9 +99,9 @@ describe('storage tools', () => {
       'page:versions:p',
       JSON.stringify({ entries: [{ doc: doc(media({ blob: `blob:${inVersion.id}`, src: '' })) }], events: [] }),
     )
-    const scan = await scanOrphans('p', { pages, blobs })
-    expect(scan).toEqual({ ok: true, ids: [unused.id] })
-    expect(await sweepOrphans('p', { pages, blobs })).toEqual({ ok: true, removed: 1 })
+    const later = { now: () => Date.now() + 2 * DAY }
+    expect(await scanOrphans('p', { pages, blobs, ...later })).toEqual({ ok: true, ids: [unused.id], recent: 0 })
+    expect(await sweepOrphans('p', { pages, blobs, ...later })).toEqual({ ok: true, removed: 1 })
     expect((await blobs.list('p')).map((b) => b.id).sort()).toEqual([keep.id, inVersion.id].sort())
   })
 
@@ -109,13 +110,59 @@ describe('storage tools', () => {
     await blobs.put('p', new Blob(['c'], { type: 'image/png' }))
     await pages.put('p', doc())
     sidecar.map.set('page:versions:p', 'not json')
-    expect((await scanOrphans('p', { pages, blobs })).ok).toBe(false)
-    expect((await sweepOrphans('p', { pages, blobs })).ok).toBe(false)
+    const later = { now: () => Date.now() + 2 * DAY }
+    expect((await scanOrphans('p', { pages, blobs, ...later })).ok).toBe(false)
+    expect((await sweepOrphans('p', { pages, blobs, ...later })).ok).toBe(false)
     expect(await blobs.list('p')).toHaveLength(1)
     sidecar.map.delete('page:versions:p')
-    expect((await scanOrphans('missing', { pages, blobs })).ok).toBe(false)
+    expect((await scanOrphans('missing', { pages, blobs, ...later })).ok).toBe(true) // no body for that id: nothing refers to its files
     pages.get = () => Promise.reject(new Error('unreadable'))
-    expect((await sweepOrphans('p', { pages, blobs })).ok).toBe(false)
+    expect((await sweepOrphans('p', { pages, blobs, ...later })).ok).toBe(false)
+    expect(await blobs.list('p')).toHaveLength(1)
+  })
+
+  it("a file another page shows stays: a block copied out of page A still refers to A's file until adoption", async () => {
+    const { pages, blobs } = setup()
+    const file = await blobs.put('a', new Blob(['x'], { type: 'image/png' }))
+    await pages.put('a', doc())
+    await pages.put('b', doc(media({ blob: `blob:${file.id}`, src: '' })))
+    const later = { now: () => Date.now() + 2 * DAY }
+    expect(await scanOrphans('a', { pages, blobs, ...later })).toEqual({ ok: true, ids: [], recent: 0 })
+    expect(await sweepOrphans('a', { pages, blobs, ...later })).toEqual({ ok: true, removed: 0 })
+    expect(await blobs.list('a')).toHaveLength(1)
+  })
+
+  it('keeps a page version of another page, and a trashed page, in the used set', async () => {
+    const { pages, blobs, sidecar } = setup()
+    const file = await blobs.put('a', new Blob(['x'], { type: 'image/png' }))
+    await pages.put('a', doc())
+    await pages.put('trashed', doc())
+    sidecar.map.set(
+      'page:versions:trashed',
+      JSON.stringify({ entries: [{ doc: doc(media({ blob: `blob:${file.id}`, src: '' })) }], events: [] }),
+    )
+    const later = { now: () => Date.now() + 2 * DAY }
+    expect(await scanOrphans('a', { pages, blobs, ...later })).toEqual({ ok: true, ids: [], recent: 0 })
+  })
+
+  it('never removes a file younger than a day, even when nothing refers to it, and says how many it kept', async () => {
+    const { pages, blobs } = setup()
+    await blobs.put('p', new Blob(['new'], { type: 'image/png' }))
+    await pages.put('p', doc())
+    expect(await scanOrphans('p', { pages, blobs })).toEqual({ ok: true, ids: [], recent: 1 })
+    expect(await sweepOrphans('p', { pages, blobs })).toEqual({ ok: true, removed: 0 })
+    expect(await blobs.list('p')).toHaveLength(1)
+  })
+
+  it('does not remove anything when the guard refuses', async () => {
+    const { pages, blobs } = setup()
+    await blobs.put('p', new Blob(['old'], { type: 'image/png' }))
+    await pages.put('p', doc())
+    const later = { now: () => Date.now() + 2 * DAY }
+    const result = await sweepOrphans('p', { pages, blobs, ...later }, () =>
+      Promise.resolve('Another tab has unsaved changes.'),
+    )
+    expect(result).toEqual({ ok: false, message: 'Another tab has unsaved changes.' })
     expect(await blobs.list('p')).toHaveLength(1)
   })
 })

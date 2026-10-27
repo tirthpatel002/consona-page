@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { demoBlobs, demoPages, demoRegistry } from './demoSession'
 import { countInlineFiles, migratePageFiles, scanOrphans, sweepOrphans } from './storageTools'
+import { askOtherTabs, refuseIfOtherTabsDirty } from './tabCoordination'
 import './storageTools.css'
 
 interface Row {
@@ -8,6 +9,7 @@ interface Row {
   readonly title: string
   readonly inline: number | null
   readonly unused: number | null
+  readonly recent: number
   readonly problem: string | null
 }
 
@@ -52,6 +54,7 @@ export function StorageTools({ currentId }: { readonly currentId: string }) {
           title: page.title || 'Untitled',
           inline,
           unused: orphans.ok ? orphans.ids.length : null,
+          recent: orphans.ok ? orphans.recent : 0,
           problem: problem ?? (orphans.ok ? null : orphans.message),
         })
       }
@@ -86,7 +89,9 @@ export function StorageTools({ currentId }: { readonly currentId: string }) {
     )
       return
     setBusy(true)
-    const result = await sweepOrphans(row.id, { pages: demoPages, blobs: demoBlobs })
+    const result = await sweepOrphans(row.id, { pages: demoPages, blobs: demoBlobs }, async () =>
+      refuseIfOtherTabsDirty(await askOtherTabs()),
+    )
     setNote(result.ok ? `Removed ${String(result.removed)} unused file(s).` : result.message)
     setBusy(false)
     await check()
@@ -96,7 +101,8 @@ export function StorageTools({ currentId }: { readonly currentId: string }) {
     <details className="storage-tools">
       <summary>Storage</summary>
       <p className="storage-tools__hint">
-        Works on pages other than the open one. Files in other tabs that are still uploading are not seen by this check.
+        Works on pages other than the open one. Unused files are only removed once they are a day old and no page or
+        saved version refers to them, and not while another tab has unsaved changes.
       </p>
       <button type="button" disabled={busy} onClick={() => void check()}>
         Check other pages
@@ -115,6 +121,7 @@ export function StorageTools({ currentId }: { readonly currentId: string }) {
             <span className="storage-tools__hint">
               {row.inline === null ? 'Files: unknown' : `${String(row.inline)} inline file(s)`}
               {row.unused === null ? '' : `, ${String(row.unused)} unused`}
+              {row.recent > 0 ? `, ${String(row.recent)} unused but newer than a day (kept)` : ''}
             </span>
             <span className="storage-tools__actions">
               {(row.inline ?? 0) > 0 && (

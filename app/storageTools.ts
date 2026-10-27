@@ -1,11 +1,9 @@
 import {
-  findOrphanBlobs,
   getSidecarStorage,
   referencedBlobIds,
   removeBlobs,
   StaleRevisionError,
   type BlobStore,
-  type JsonObject,
   type PageStore,
 } from '../src/editor/core'
 import { migrateInlineMedia, type MigrationKept } from '../src/plugins/media'
@@ -90,41 +88,63 @@ export function readVersionDocs(pageId: string): readonly unknown[] | null {
   }
 }
 
+/** Files younger than this are never removed: an upload may be on its way into a page that has not saved yet. */
+export const SWEEP_GRACE_MS = 24 * 60 * 60 * 1000
+
 export interface OrphanReport {
   readonly ok: true
+  /** Unused files old enough to remove. */
   readonly ids: readonly string[]
+  /** Unused files kept because they are newer than the grace period. */
+  readonly recent: number
 }
 
 /**
- * Stored files of a closed page that neither its body nor any saved version refers to. If the body or the
- * history cannot be read, nothing is reported: an unreadable record might refer to every file.
+ * Stored files of a page that no page refers to. A file counts as used if ANY page's body or any saved
+ * version of any page (trashed pages included) refers to it, because a block copied from this page into
+ * another one reads its file from here until the copy is made. If any body or history cannot be read
+ * nothing is reported: an unreadable record might refer to every file. Files younger than the grace period
+ * are kept.
  */
 export async function scanOrphans(
   pageId: string,
-  deps: { readonly pages: PageStore; readonly blobs: BlobStore },
+  deps: { readonly pages: PageStore; readonly blobs: BlobStore; readonly now?: () => number },
 ): Promise<OrphanReport | ToolFailure> {
-  let stored
+  const used = new Set<string>()
   try {
-    stored = await deps.pages.get(pageId)
+    for (const summary of await deps.pages.list()) {
+      const stored = await deps.pages.get(summary.id)
+      if (stored) referencedBlobIds(stored.doc, used)
+      const versions = readVersionDocs(summary.id)
+      if (versions === null) {
+        return { ok: false, message: 'Version history could not be read, so unused files were not checked.' }
+      }
+      for (const doc of versions) referencedBlobIds(doc, used)
+    }
   } catch {
-    return { ok: false, message: 'The page could not be read, so unused files were not checked.' }
+    return { ok: false, message: 'A page could not be read, so unused files were not checked.' }
   }
-  if (!stored) return { ok: false, message: 'The page has no saved body.' }
-  const versions = readVersionDocs(pageId)
-  if (versions === null)
-    return { ok: false, message: 'Version history could not be read, so unused files were not checked.' }
+  const now = (deps.now ?? Date.now)()
   try {
-    return { ok: true, ids: await findOrphanBlobs(deps.blobs, pageId, [stored.doc as JsonObject, ...versions]) }
+    const unused = (await deps.blobs.list(pageId)).filter((b) => !used.has(b.id))
+    const old = unused.filter((b) => now - b.createdAt >= SWEEP_GRACE_MS)
+    return { ok: true, ids: old.map((b) => b.id), recent: unused.length - old.length }
   } catch {
     return { ok: false, message: 'The stored files could not be listed.' }
   }
 }
 
-/** Removes the unused files of a closed page. It scans again first and only removes files that are still unused. */
+/**
+ * Removes the unused, old-enough files of a page. `guard` runs first and returns a reason to refuse (for
+ * example another tab has unsaved changes). It scans again right before removing.
+ */
 export async function sweepOrphans(
   pageId: string,
-  deps: { readonly pages: PageStore; readonly blobs: BlobStore },
+  deps: { readonly pages: PageStore; readonly blobs: BlobStore; readonly now?: () => number },
+  guard?: () => Promise<string | null>,
 ): Promise<{ readonly ok: true; readonly removed: number } | ToolFailure> {
+  const refused = guard ? await guard() : null
+  if (refused) return { ok: false, message: refused }
   const scan = await scanOrphans(pageId, deps)
   if (!scan.ok) return scan
   try {
