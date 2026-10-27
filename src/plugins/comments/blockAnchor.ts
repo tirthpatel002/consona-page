@@ -12,6 +12,7 @@ export const COMMENTABLE_BLOCKS = [
   'table',
   'horizontalRule',
   'embedBlock',
+  'media',
 ]
 
 /**

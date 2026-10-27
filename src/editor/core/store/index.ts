@@ -3,6 +3,7 @@ export type { PageChange, PageStore, PageSummary, PutOptions, StoredPage } from 
 export { createMemoryStore } from './memoryStore'
 export { createLocalStorageStore } from './localStorageStore'
 export {
+  createIndexedDbBlobStore,
   createIndexedDbRegistryStorage,
   createIndexedDbStore,
   SCHEMA_VERSION,
@@ -22,3 +23,15 @@ export {
   type RegistryStorage,
   type Undoable,
 } from './registry'
+export {
+  BlobLimitError,
+  checkBlobLimits,
+  createMemoryBlobStore,
+  DEFAULT_BLOB_LIMITS,
+  type BlobErrorCode,
+  type BlobLimits,
+  type BlobStore,
+  type BlobStoreOptions,
+  type BlobSummary,
+  type StoredBlob,
+} from './blobStore'
