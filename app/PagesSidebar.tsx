@@ -65,7 +65,12 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
           setResults(found.results)
           setTruncated(found.truncated)
         },
-        () => !cancelled && setNote({ text: 'Search could not read the saved pages.' }),
+        () => {
+          if (!cancelled) {
+            setResults([])
+            setNote({ text: 'Search could not read the saved pages.' })
+          }
+        },
       )
     }, 200)
     return () => {
@@ -100,6 +105,8 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
 
   const trash = (record: PageRecord) =>
     run(async () => {
+      const currentPath = record.id === currentId ? [] : await demoRegistry.path(currentId)
+      const hidesCurrent = record.id === currentId || currentPath.some((parent) => parent.id === record.id)
       const done = await demoRegistry.moveToTrash(record.id)
       setNote({
         text: `"${record.title}" moved to trash.`,
@@ -108,7 +115,7 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
           onChanged()
         },
       })
-      if (record.id === currentId) onCurrentTrashed(record.parentId)
+      if (hidesCurrent) onCurrentTrashed(record.parentId)
     })
 
   const flatten = (nodes: readonly TreeNode[]): PageRecord[] => nodes.flatMap((n) => [n.record, ...flatten(n.children)])

@@ -197,3 +197,9 @@
   outline: 2px solid var(--page-fg);
   outline-offset: -2px;
 }
+/* Read-only previews keep embedded block surfaces in the same neutral theme. */
+.page-preview__body .page-callout {
+  background: var(--page-bg);
+  color: var(--page-fg);
+  border-color: var(--page-border);
+}

@@ -21,16 +21,18 @@ export function PagePreview({ registry, pages, blobs, pageId, parentId, version,
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let cancelled = false
+    let generation = 0
     const refresh = () => {
+      const request = ++generation
       void readPreview(registry, pages, pageId, parentId).then(
         (next) => {
-          if (!cancelled) {
+          if (!cancelled && request === generation) {
             setState(next)
             setFailed(false)
           }
         },
         () => {
-          if (!cancelled) {
+          if (!cancelled && request === generation) {
             setState(null)
             setFailed(true)
           }
