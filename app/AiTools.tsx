@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { Editor } from '@tiptap/core'
 import { Settings2, Sparkles } from 'lucide-react'
 import type { PageSettingsStore } from '../src/editor/core'
@@ -41,6 +41,11 @@ export function AiTools({
   const [launchError, setLaunchError] = useState('')
   const [undoMessage, setUndoMessage] = useState('')
   const [undoBusy, setUndoBusy] = useState(false)
+  const [undone, setUndone] = useState(false)
+  const closeButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (undone && !undoBusy) closeButton.current?.focus()
+  }, [undone, undoBusy])
   useEffect(() => () => controller.discard(), [controller])
   const [snapshot, setSnapshot] = useState<{
     selection: ReturnType<typeof captureAiTargets>
@@ -71,6 +76,7 @@ export function AiTools({
     }
     setLaunchError('')
     setUndoMessage('')
+    setUndone(false)
     setSnapshot({ ...captured, revision: read.revision })
     setNeverAsk(false)
     setActionsOpen(true)
@@ -188,10 +194,10 @@ export function AiTools({
           )}
           {state.phase === 'applying' && <p role="status">Applying validated changes…</p>}
           {undoMessage && <p role="status">{undoMessage}</p>}
-          {state.message && <p role={state.phase === 'error' ? 'alert' : 'status'}>{state.message}</p>}
+          {state.message && !undone && <p role={state.phase === 'error' ? 'alert' : 'status'}>{state.message}</p>}
           {(state.phase === 'done' || state.phase === 'error') && (
             <footer className="ai-dialog__actions">
-              <button type="button" disabled={undoBusy} onClick={close}>
+              <button type="button" ref={closeButton} disabled={undoBusy} onClick={close}>
                 Close
               </button>
               {state.phase === 'error' && (
@@ -205,19 +211,21 @@ export function AiTools({
                   Select again / re-run
                 </button>
               )}
-              {state.phase === 'done' && (
+              {state.phase === 'done' && !undone && (
                 <button
                   type="button"
-                  disabled={undoBusy || undoMessage === 'Changes undone.'}
+                  disabled={undoBusy}
                   onClick={() => {
                     setUndoBusy(true)
                     void engine
                       .undo(pageId)
                       .then(
-                        (result) =>
+                        (result) => {
+                          if (result.ok) setUndone(true)
                           setUndoMessage(
                             result.ok ? 'Changes undone.' : result.errors.map((error) => error.message).join(' '),
-                          ),
+                          )
+                        },
                         () => setUndoMessage('Could not confirm undo. Read the page before retrying.'),
                       )
                       .finally(() => setUndoBusy(false))
