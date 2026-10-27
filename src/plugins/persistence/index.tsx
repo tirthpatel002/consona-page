@@ -131,7 +131,7 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
               pending = null
               set(
                 'conflict',
-                'This page changed somewhere else (another tab?). Reload to get the latest. Edits made here since then are not saved.',
+                'This page changed somewhere else (another tab?). Download your version before reloading: edits made here since then are not saved.',
               )
               return
             }
@@ -156,6 +156,11 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
       const onVisibility = () => {
         if (document.visibilityState === 'hidden') flush()
       }
+      // Closing the tab with unsaved changes asks first (the browser shows its own generic prompt).
+      const onBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (storage.status === 'error' || storage.status === 'conflict') event.preventDefault()
+      }
+      window.addEventListener('beforeunload', onBeforeUnload)
       editor.on('update', onUpdate)
       window.addEventListener('pagehide', flush)
       document.addEventListener('visibilitychange', onVisibility)
@@ -163,6 +168,7 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
         flush()
         editor.off('update', onUpdate)
         window.removeEventListener('pagehide', flush)
+        window.removeEventListener('beforeunload', onBeforeUnload)
         document.removeEventListener('visibilitychange', onVisibility)
       })
     },

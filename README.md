@@ -226,8 +226,9 @@ The demo saves the page to IndexedDB through the page store (`src/editor/core/st
 
 - The page is loaded before the editor opens, so a late read cannot replace text you already typed. If the saved page cannot be read, the editor does not open (a first save would overwrite it) and offers "Try again".
 - Edits are written 500 ms after the last change, and also when the page is hidden, closed (`pagehide`) or the editor is destroyed. Saves run one at a time and the latest text wins. Flushing on close is best effort: a browser crash, a killed process or an asynchronous IndexedDB write that the browser cancels on close can still lose the last changes.
-- Every save carries the revision it was loaded at. If the page was changed elsewhere (for example in another tab), saving stops, the status line says so, and nothing is overwritten. Reload to get the latest copy; edits made in the stale tab since then are not saved and not merged.
+- Every save carries the revision it was loaded at. If the page was changed elsewhere (for example in another tab), saving stops, the status line says so, and nothing is overwritten. The status line offers "Download my version" (the current page as JSON), and reloading the latest copy needs a second click that says it discards your edits; closing the tab asks first. Edits made in the stale tab since then are not saved and not merged automatically.
 - A visible status line shows "Saving...", "Saved on this device", or the failure with a "Try again" button. Restoring a version from history is saved like any other edit.
+- If IndexedDB held a page once, a later IndexedDB failure does not open the older localStorage copy (editing it and recovering IndexedDB later would overwrite newer content): the page shows "Could not read the saved page" instead. A page that never lived in IndexedDB falls back to localStorage.
 - Not done: oversized media is stored inside the document and can hit storage limits (not checked or reported separately), version history and comments still use localStorage, there is no cross-tab live update, and the status wording is first-pass.
 
 ## Bundle size

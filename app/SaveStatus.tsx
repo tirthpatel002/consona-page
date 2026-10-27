@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import type { Editor } from '@tiptap/core'
 
 const LABELS = { idle: '', saving: 'Saving…', saved: 'Saved on this device' } as const
@@ -19,19 +19,41 @@ export function SaveStatus({ editor }: { readonly editor: Editor }) {
       </div>
     )
   }
-  if (status === 'conflict') {
-    return (
-      <div className="save-status is-error" role="alert">
-        <span>{message}</span>
-        <button type="button" onClick={() => window.location.reload()}>
-          Reload
-        </button>
-      </div>
-    )
-  }
+  if (status === 'conflict') return <Conflict editor={editor} message={message} />
   return (
     <div className="save-status" role="status" aria-live="polite">
       {LABELS[status]}
+    </div>
+  )
+}
+
+/** The page changed elsewhere. Reloading would drop what is on screen, so it needs a saved copy or a clear choice. */
+function Conflict({ editor, message }: { readonly editor: Editor; readonly message: string }) {
+  const [confirming, setConfirming] = useState(false)
+  const download = () => {
+    const blob = new Blob([JSON.stringify(editor.getJSON(), null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'my-version.json'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+  return (
+    <div className="save-status is-error" role="alert">
+      <span>{message}</span>
+      <button type="button" onClick={download}>
+        Download my version
+      </button>
+      {confirming ? (
+        <button type="button" onClick={() => window.location.reload()}>
+          Discard my edits and reload
+        </button>
+      ) : (
+        <button type="button" onClick={() => setConfirming(true)}>
+          Reload latest…
+        </button>
+      )}
     </div>
   )
 }
