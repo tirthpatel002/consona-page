@@ -13,10 +13,12 @@ import {
   setCurrentPageId,
 } from './demoSession'
 import { PagesSidebar } from './PagesSidebar'
+import { StorageTools } from './StorageTools'
 import { PageToolbar } from './PageToolbar'
-import { SaveStatus } from './SaveStatus'
+import { inStack, SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
 import { ExportNotice } from './ExportNotice'
+import { demoPagesEngine } from './pagesEngine'
 import { pagePlugins } from './plugins'
 import '../src/utils/banner/banner.css'
 
@@ -48,6 +50,12 @@ function Page({
   readonly initialContent: JSONContent
 }) {
   const page = usePageController({ registry, initialContent, documentId, settings: demoSettings })
+  // While this page is open the engine edits it through this editor, so history and autosave see engine edits.
+  const openEditor = page.editor
+  useEffect(() => {
+    if (!openEditor) return
+    return demoPagesEngine.attach(documentId, openEditor)
+  }, [openEditor, documentId])
   // Errors from every status component gather in one fixed stack, so two at once never cover each other.
   const [errorHost, setErrorHost] = useState<HTMLElement | null>(null)
   return (
@@ -57,6 +65,16 @@ function Page({
       <PageToolbar page={page} />
       {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} />}
       <SidecarStatus errorHost={errorHost} />
+      {page.lockSaveFailed &&
+        inStack(
+          errorHost,
+          <div className="save-status is-error" role="alert">
+            <span>
+              The page lock could not be saved on this device. It holds in this tab, but may not apply after a reload or
+              to tools that work on the closed page.
+            </span>
+          </div>,
+        )}
       <ExportNotice host={errorHost} />
       <PageEditor page={page} />
     </div>
@@ -224,6 +242,7 @@ export function App() {
           onCurrentTrashed={(parentId) => openPage(parentId ?? demoDocumentId)}
           version={version}
         />
+        <StorageTools currentId={currentId} />
       </div>
       <main className="app-main">
         <PageLoader key={currentId} documentId={currentId} title={titles[currentId] ?? 'Page'} />

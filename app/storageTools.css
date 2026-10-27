@@ -1,0 +1,52 @@
+.storage-tools {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--page-fg);
+  border-top: 1px solid var(--page-border, currentColor);
+}
+.storage-tools summary {
+  cursor: pointer;
+  color: var(--page-muted-fg);
+}
+.storage-tools ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.storage-tools li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.storage-tools__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.storage-tools__hint,
+.storage-tools__note {
+  color: var(--page-muted-fg);
+  font-size: 0.78rem;
+  margin: 0.25rem 0;
+}
+.storage-tools__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.storage-tools button {
+  font: inherit;
+  color: var(--page-muted-fg);
+  background: none;
+  border: 0;
+  padding: 0.1rem 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.storage-tools button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
