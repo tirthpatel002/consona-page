@@ -101,3 +101,11 @@ Not built yet:
 - Icon buttons in the sidebar (they are text buttons).
 - Page order within a level is creation order only; there is no drag to reorder pages.
 - Checked in desktop Chrome and a 390 px viewport only.
+
+## Storage tools in the demo (explicit, never automatic)
+
+The demo's Storage panel lists the other pages (not the open one) with how many files are still inline and how many stored files nothing refers to.
+
+- **Move files to storage** runs `migrateInlineMedia` on a closed page and saves it once, only if the stored revision is unchanged. If the save fails or another tab saved first, the files just stored are removed again and the page is untouched. Files that are too large, unsupported or unreadable stay inline and are counted. Saved versions keep their inline copies.
+- **Remove unused files** (asks first) removes stored files that neither the body nor any saved version refers to. It scans again right before removing. If the body or the version history cannot be read it reports that and removes nothing.
+- Not covered: a file another tab has just uploaded but not yet inserted would look unused; the panel says so. Trashed pages and the open page are not scanned. Nothing runs on load.

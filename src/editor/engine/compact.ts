@@ -1,5 +1,5 @@
 import type { Node as PMNode } from '@tiptap/pm/model'
-import { isBlockId } from '../core'
+import { isBlockId } from '../core/blockId'
 
 /**
  * What the engine needs from a Markdown converter. The host passes one in (the export plugin has one), so the

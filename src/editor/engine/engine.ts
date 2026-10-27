@@ -1,7 +1,8 @@
 import type { Editor } from '@tiptap/core'
 import { Fragment, Slice, type Node as PMNode } from '@tiptap/pm/model'
 import { ReplaceStep } from '@tiptap/pm/transform'
-import { isBlockId, isSafeUrl } from '../core'
+import { isBlockId } from '../core/blockId'
+import { isSafeUrl } from '../core/safeUrl'
 import { toCompact, type CompactOptions, type CompactText, type JsonNode, type MarkdownCodec } from './compact'
 
 /** Every block addressed by the engine has a `blockId` (see core/blockId.ts). */

@@ -5,8 +5,15 @@ import {
   type PageSettingsStore,
   type PageStore,
 } from '../src/editor/core'
-import { createPagesEngine, type MarkdownCodec, type PagesEngine, type RequestLog } from '../src/editor/engine'
+import {
+  createLocalStorageRequestLog,
+  createPagesEngine,
+  type MarkdownCodec,
+  type PagesEngine,
+  type RequestLog,
+} from '../src/editor/engine'
 import { fromMarkdown, inlineToMarkdown, parseInline } from '../src/plugins/export/markdown'
+import { demoPages, demoRegistry, demoSettings } from './demoSession'
 import { pagePlugins } from './plugins'
 
 /** The export plugin's Markdown converter, in the shape the engine takes. */
@@ -37,3 +44,11 @@ export function createDemoPagesEngine(deps: {
     },
   })
 }
+
+/** The one engine the demo app shares: the demo's page list, bodies and settings, with the request log kept in this browser. */
+export const demoPagesEngine: PagesEngine = createDemoPagesEngine({
+  registry: demoRegistry,
+  store: demoPages,
+  settings: demoSettings,
+  requestLog: createLocalStorageRequestLog(),
+})

@@ -1,16 +1,16 @@
 import type { Editor } from '@tiptap/core'
 import type { Schema } from '@tiptap/pm/model'
+import { isBlockId } from '../core/blockId'
+import type { JsonObject } from '../core/json'
 import {
-  isBlockId,
   searchPages,
   StaleRevisionError,
-  type JsonObject,
   type PageListRegistry,
   type PageSearchResponse,
   type PageSettingsStore,
   type PageStore,
   type SearchOptions,
-} from '../core'
+} from '../core/store'
 import type { CompactOptions, CompactText, MarkdownCodec } from './compact'
 import { createPageEngine, type EditRequest, type EditResult, type PageEngine, type Step } from './engine'
 import type { RequestLog } from './requestLog'
