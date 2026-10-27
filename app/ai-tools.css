@@ -1,0 +1,129 @@
+.ai-tools {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+.ai-tools button,
+.ai-dialog button,
+.ai-dialog select {
+  font: inherit;
+  color: var(--page-fg);
+  background: var(--page-bg);
+  border: 1px solid var(--page-border);
+  border-radius: var(--page-r-1);
+  padding: 7px 10px;
+}
+.ai-tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.ai-tools button:hover,
+.ai-dialog button:hover {
+  background: var(--page-hover-fill);
+}
+.ai-tools button:focus-visible,
+.ai-dialog :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.ai-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--page-fg) 25%, transparent);
+}
+.ai-dialog {
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  box-sizing: border-box;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  border: 1px solid var(--page-border);
+  border-radius: var(--page-radius);
+  padding: 20px;
+  font-family: var(--page-font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 12px 48px color-mix(in srgb, var(--page-fg) 15%, transparent);
+}
+.ai-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ai-dialog h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.ai-dialog h3 {
+  font-size: 14px;
+}
+.ai-dialog__header button {
+  display: grid;
+  place-items: center;
+  padding: 6px;
+}
+.ai-muted {
+  color: var(--page-muted-fg);
+}
+.ai-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 16px;
+}
+.ai-check input {
+  accent-color: var(--page-fg);
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.ai-field {
+  display: grid;
+  gap: 5px;
+  margin: 16px 0;
+}
+.ai-field select {
+  width: 100%;
+  min-width: 0;
+}
+.ai-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.ai-dialog pre {
+  font-family: var(--page-font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--page-muted);
+  padding: 10px;
+  border-radius: var(--page-r-1);
+}
+.ai-changes {
+  padding-left: 24px;
+}
+.ai-changes small {
+  overflow-wrap: anywhere;
+}
+.ai-dialog button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+@media (max-width: 480px) {
+  .ai-dialog {
+    padding: 16px;
+  }
+  .ai-tools {
+    padding-left: 8px;
+  }
+}
