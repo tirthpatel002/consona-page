@@ -248,10 +248,16 @@ function attachResize(view: EditorView, editor: Editor) {
     const slot = view.dom.querySelector<HTMLElement>('.page-media__toolbar-slot:not(:empty)')
     if (!slot) return
     slot.style.left = ''
+    delete slot.dataset.placement
     const host = view.dom.getBoundingClientRect()
     slot.style.maxWidth = `${Math.max(120, Math.floor(host.width))}px`
     const rect = slot.getBoundingClientRect()
     if (rect.width === 0) return
+    // Above the block unless that would slide under the sticky toolbar or off the top of the window.
+    const toolbarBottom = document.querySelector('.page-toolbar')?.getBoundingClientRect().bottom ?? 0
+    if (rect.top < Math.max(toolbarBottom, 0) + 4) {
+      slot.dataset.placement = 'below'
+    }
     const left = host.left
     const right = host.right
     let shift = 0
@@ -260,16 +266,31 @@ function attachResize(view: EditorView, editor: Editor) {
     // `left`, not a transform: a transformed ancestor would break the fixed-position menus inside the bar.
     if (shift !== 0) slot.style.left = `${Math.round(shift)}px`
   }
+  /** Marks pictures that failed to load so the block shows a notice rather than collapsing. */
+  const markBroken = () => {
+    for (const img of view.dom.querySelectorAll<HTMLImageElement>('.page-media__frame img[src]')) {
+      const frame = img.closest('.page-media__frame')
+      if (img.complete && img.naturalWidth === 0) frame?.setAttribute('data-broken', '')
+      else if (img.complete) frame?.removeAttribute('data-broken')
+    }
+  }
+  view.dom.addEventListener('error', () => requestAnimationFrame(markBroken), true)
   window.addEventListener('resize', clampBar)
+  window.addEventListener('scroll', clampBar, true)
   // The bar content is a React portal that fills in after the selection update, so watch for it too.
   const watcher = new MutationObserver(() => requestAnimationFrame(clampBar))
   watcher.observe(view.dom, { childList: true, subtree: true })
   return {
     update() {
       requestAnimationFrame(clampBar)
+      // Layout can settle a moment later (panels closing, pictures loading).
+      setTimeout(clampBar, 150)
+      setTimeout(markBroken, 150)
+      setTimeout(markBroken, 1200)
     },
     destroy() {
       window.removeEventListener('resize', clampBar)
+      window.removeEventListener('scroll', clampBar, true)
       watcher.disconnect()
       view.dom.removeEventListener('pointerdown', onDown, true)
       view.dom.removeEventListener('keydown', onHandleKey, true)

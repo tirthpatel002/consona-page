@@ -123,6 +123,31 @@ export const Media = Node.create({
         })
       }
       syncBlob(current)
+      // A picture or player that fails to load shows a visible notice instead of collapsing; the block, caption and ids stay.
+      const mark = (event: Event, broken: boolean) => {
+        const target = event.target
+        if (!(target instanceof Element) || !target.matches('img, video, audio')) return
+        const frame = target.closest('.page-media__frame')
+        if (broken) frame?.setAttribute('data-broken', '')
+        else frame?.removeAttribute('data-broken')
+      }
+      dom.addEventListener('error', (event) => mark(event, true), true)
+      // Listeners on the element itself too (a source that fails before the frame is attached, or is already known bad).
+      const watch = () => {
+        for (const el of (dom as HTMLElement).querySelectorAll<HTMLImageElement>('img, video, audio')) {
+          const frame = el.closest('.page-media__frame')
+          el.addEventListener('error', () => frame?.setAttribute('data-broken', ''), { once: true })
+          if (el instanceof HTMLImageElement && el.getAttribute('src') && el.complete && el.naturalWidth === 0) {
+            frame?.setAttribute('data-broken', '')
+          }
+        }
+      }
+      watch()
+      setTimeout(watch, 300)
+      setTimeout(watch, 1500)
+      dom.addEventListener('error', (event) => mark(event, true), true)
+      dom.addEventListener('load', (event) => mark(event, false), true)
+      dom.addEventListener('loadeddata', (event) => mark(event, false), true)
       return {
         dom,
         contentDOM,
@@ -141,7 +166,16 @@ export const Media = Node.create({
           figure.classList.add(...keep)
           const frame = figure.querySelector('.page-media__frame')
           const freshFrame = fresh.querySelector('.page-media__frame')
-          if (frame && freshFrame) frame.replaceWith(freshFrame)
+          if (frame && freshFrame) {
+            // The same failing source will not fire another error, so carry the notice over to the new frame.
+            const srcOf = (el: Element) => el.querySelector('img, video, audio')?.getAttribute('src') ?? ''
+            if (frame.hasAttribute('data-broken') && srcOf(frame) === srcOf(freshFrame)) {
+              freshFrame.setAttribute('data-broken', '')
+            }
+            frame.replaceWith(freshFrame)
+            watch()
+            setTimeout(watch, 300)
+          }
           syncBlob(next)
           return true
         },
