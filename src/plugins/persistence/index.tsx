@@ -1,4 +1,5 @@
 import type { Editor, JSONContent } from '@tiptap/core'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Extension } from '@tiptap/core'
 import { useState } from 'react'
 import type { PagePlugin } from '../../editor/core'
@@ -28,7 +29,12 @@ export const resetPersistedDoc = (documentId: string): void => {
 
 declare module '@tiptap/core' {
   interface Storage {
-    docPersistence: { degraded: boolean }
+    docPersistence: {
+      degraded: boolean
+      dirty: boolean
+      timer: ReturnType<typeof setTimeout> | null
+      flush?: () => void
+    }
   }
 }
 
@@ -42,23 +48,54 @@ const docPersistenceExtension = Extension.create({
   name: 'docPersistence',
 
   addStorage() {
-    return { degraded: false }
+    return {
+      degraded: false,
+      flush: undefined as (() => void) | undefined,
+    }
   },
 
-  onUpdate() {
-    const storage = this.editor.storage.docPersistence
-    const documentId = this.editor.storage.documentIdentity?.documentId ?? 'default'
-    const key = keyFor(documentId)
-    const timer = (storage as { timer?: ReturnType<typeof setTimeout> }).timer
-    if (timer) clearTimeout(timer)
-    ;(storage as { timer?: ReturnType<typeof setTimeout> }).timer = setTimeout(() => {
+  onBeforeCreate() {
+    // No browser (server rendering, schema-only editors): nothing to persist to.
+    if (typeof window === 'undefined') return
+    const { editor } = this
+    const storage = editor.storage.docPersistence
+    let pending: ProseMirrorNode | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    // Serializes the latest edited document. Holding the node (not reading the editor) keeps this safe
+    // to call while the editor is being destroyed.
+    const flush = () => {
+      if (timer) clearTimeout(timer)
+      timer = null
+      if (!pending) return
+      const documentId = editor.storage.documentIdentity?.documentId ?? 'default'
       try {
-        localStorage.setItem(key, JSON.stringify(this.editor.getJSON()))
+        localStorage.setItem(keyFor(documentId), JSON.stringify(pending.toJSON()))
         storage.degraded = false
+        pending = null
       } catch {
         storage.degraded = true
       }
-    }, SAVE_DEBOUNCE_MS)
+    }
+    storage.flush = flush
+
+    const onUpdate = () => {
+      pending = editor.state.doc
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(flush, SAVE_DEBOUNCE_MS)
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    editor.on('update', onUpdate)
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVisibility)
+    editor.on('destroy', () => {
+      flush()
+      editor.off('update', onUpdate)
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVisibility)
+    })
   },
 })
 

@@ -68,7 +68,7 @@ export {
 export { documentIdentityExtension } from './identity'
 export type { EditorUiStores } from './registry/createExtensions'
 export { KEEP_PLUGIN_SELECTION_META } from './gutter/BlockGutter'
-export { BLOCK_REMOVAL_META, moveBlocksTo } from './operations/operations'
+export { BLOCK_REMOVAL_META, moveBlocksTo, restoreVersion } from './operations/operations'
 export { autoScrollDelta } from './gutter/dropTarget'
 export { Icon, lucideStrokeForSize, type IconName } from './ui/Icon'
 export { Popover, type PopoverProps } from './ui/Popover'
