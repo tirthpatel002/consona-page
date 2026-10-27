@@ -98,3 +98,42 @@ describe('media plugin', () => {
     destroy()
   })
 })
+
+describe('media toolbar', () => {
+  it('finds the block from a node selection or the caption caret, and changes alignment as one step', async () => {
+    const { mediaToolbar, findSelectedMedia } = await import('./mediaToolbar')
+    const { editor, destroy } = make('<p>keep</p>')
+    expect(findSelectedMedia(editor)).toBeNull()
+    insertMedia.run(editor, 'image', 'https://x.test/a.png')
+    const found = findSelectedMedia(editor)
+    if (!found) throw new Error('no media selected')
+    expect(found.src).toBe('https://x.test/a.png')
+    const left = mediaToolbar.groups[0]
+    if (left.kind !== 'buttons') throw new Error('expected buttons')
+    left.actions[0].run(editor)
+    expect(editor.state.doc.nodeAt(found.pos)?.attrs.align).toBe('left')
+    expect(left.actions[0].isActive?.(editor)).toBe(true)
+    editor.commands.undo()
+    expect(editor.state.doc.nodeAt(found.pos)?.attrs.align).toBe('center')
+    destroy()
+  })
+
+  it('only offers Open original and Download for safe sources, and delete removes the block', async () => {
+    const { mediaToolbar } = await import('./mediaToolbar')
+    const { editor, destroy } = make('<p>keep</p>')
+    insertMedia.run(editor, 'image', 'data:image/png;base64,AAAA')
+    const actions = mediaToolbar.groups.flatMap((g) =>
+      g.kind === 'menus' ? g.menus.flatMap((m) => m.sections.flat()) : [...g.actions],
+    )
+    const by = (id: string) => {
+      const hit = actions.find((a) => a.id === id)
+      if (!hit) throw new Error(id)
+      return hit
+    }
+    expect(by('media:open-original').can(editor)).toBe(false)
+    expect(by('media:download').can(editor)).toBe(true)
+    by('media:delete').run(editor)
+    expect(names(editor)).not.toContain('media')
+    destroy()
+  })
+})

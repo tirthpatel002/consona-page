@@ -3,6 +3,7 @@ import { insertFiles, mediaWarning, MediaBehavior } from './behavior'
 import { Media, MEDIA_NODE, type MediaAlign, type MediaKind } from './extensions'
 import { chooseFile, kindOfUrl } from './files'
 import { insertMedia, setMediaLayout, setMediaSource } from './operations'
+import { mediaToolbar } from './mediaToolbar'
 import './media.css'
 
 const GROUP = 'Media'
@@ -94,4 +95,5 @@ export const mediaPlugin: PagePlugin = {
   extensions: [Media, MediaBehavior],
   slashItems,
   blockActions,
+  blockToolbars: [mediaToolbar],
 }

@@ -61,3 +61,13 @@ export const setMediaSource = defineOperation('setMediaSource', (chain, pos: num
     return true
   }),
 )
+
+/** Removes the media block at `pos`. */
+export const deleteMedia = defineOperation('deleteMedia', (chain, pos: number) =>
+  chain.command(({ state, tr, dispatch }) => {
+    const node = state.doc.nodeAt(pos)
+    if (node?.type.name !== MEDIA_NODE) return false
+    if (dispatch) tr.delete(pos, pos + node.nodeSize)
+    return true
+  }),
+)

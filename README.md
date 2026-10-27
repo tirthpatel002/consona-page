@@ -250,3 +250,7 @@ Every block node (paragraphs, headings, list and task items, tables and their ro
 ## Design
 
 Read [DESIGN.md](DESIGN.md) before building any block, plugin or UI surface.
+
+## Media bar
+
+Selecting a media block, or putting the caret in its caption, shows a bar above it: align left, center, right, Download, Open original and a More menu (Replace with link, Reset size, Delete). Open original only works for http(s) sources and opens with no opener. Download only works for sources the shared URL allowlist accepts. The bar is declared through the same block-toolbar contribution API the table uses. Not done yet: caption on/off, alt text, crop, full screen, audio and file blocks, an upload panel with progress, and video embeds. Checked in desktop Chrome and at 390 px wide; not checked with a screen reader or on touch.

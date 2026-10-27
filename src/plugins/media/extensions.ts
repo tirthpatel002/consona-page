@@ -1,10 +1,12 @@
 import { mergeAttributes, Node } from '@tiptap/core'
+import { DOMSerializer } from '@tiptap/pm/model'
 import { isSafeUrl } from '../../editor/core'
 
 export type MediaKind = 'image' | 'video'
 export type MediaAlign = 'left' | 'center' | 'right'
 
 export const MEDIA_NODE = 'media'
+export const MEDIA_TOOLBAR_SLOT = 'data-media-toolbar-slot'
 const ALIGNS: readonly MediaAlign[] = ['left', 'center', 'right']
 
 /** A media source the schema accepts: allowlisted URL schemes only, otherwise empty. */
@@ -43,6 +45,24 @@ export const Media = Node.create({
   parseHTML() {
     return [{ tag: 'figure[data-type="media"]', contentElement: 'figcaption' }]
   },
+  // A node view only so the React toolbar portal inside the slot is not treated as a document change.
+  addNodeView() {
+    return ({ node, HTMLAttributes }) => {
+      const spec = this.type.spec.toDOM?.(node) ?? ['figure', HTMLAttributes, 0]
+      const { dom, contentDOM } = DOMSerializer.renderSpec(document, spec)
+      return {
+        dom,
+        contentDOM,
+        ignoreMutation: (mutation) =>
+          mutation.type !== 'selection' && mutation.target instanceof Element
+            ? mutation.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null
+            : mutation.type !== 'selection' &&
+              mutation.target.parentElement?.closest(`[${MEDIA_TOOLBAR_SLOT}]`) != null,
+        stopEvent: (event) =>
+          event.target instanceof Element && event.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null,
+      }
+    }
+  },
   renderHTML({ node }) {
     const { kind, width, align } = node.attrs
     const src = safeSrc(node.attrs.src)
@@ -57,6 +77,7 @@ export const Media = Node.create({
         { 'data-type': 'media', 'data-kind': String(kind), 'data-align': asAlign(align), class: 'page-media' },
         width_ ? { 'data-width': String(width_), style: `width: ${width_}px` } : {},
       ),
+      ['div', { class: 'page-media__toolbar-slot', contenteditable: 'false', [MEDIA_TOOLBAR_SLOT]: '' }],
       [
         'div',
         { class: 'page-media__frame', contenteditable: 'false' },

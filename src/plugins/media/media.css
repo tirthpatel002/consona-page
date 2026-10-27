@@ -71,3 +71,19 @@
   background: var(--page-selection-fill);
   pointer-events: none;
 }
+
+/* Contextual bar (React portal into the slot): shown while the block or its caption is selected. */
+.tiptap .page-media__toolbar-slot {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 15;
+  line-height: normal;
+}
+.tiptap .page-media__toolbar-slot {
+  max-width: 100%;
+}
+.tiptap .page-media__toolbar-slot .page-block-toolbar {
+  flex-wrap: wrap;
+  white-space: normal;
+}
