@@ -35,3 +35,10 @@ export {
   type BlobSummary,
   type StoredBlob,
 } from './blobStore'
+export {
+  createIndexedDbSidecar,
+  getSidecarStorage,
+  setSidecarStorage,
+  type IndexedDbSidecar,
+  type SidecarStorage,
+} from './sidecarStorage'

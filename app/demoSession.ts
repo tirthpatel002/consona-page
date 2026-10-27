@@ -1,6 +1,8 @@
 import type { JSONContent } from '@tiptap/core'
 import {
   createIndexedDbBlobStore,
+  createIndexedDbSidecar,
+  setSidecarStorage,
   createIndexedDbRegistryStorage,
   createMemoryBlobStore,
   createMemoryRegistryStorage,
@@ -108,5 +110,24 @@ export async function loadPage(documentId: string, deps: LoadDeps): Promise<Load
   return attempt(fallback)
 }
 
-export const loadDemoPage = (documentId: string): Promise<LoadedPage> =>
-  loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSession })
+const sidecar = indexedDbStore ? createIndexedDbSidecar() : null
+let sidecarReady: Promise<void> | null = null
+/** True after a background write of history or comments failed, so they may not survive a reload. */
+export let sidecarWriteFailed = false
+/** History and comments move to IndexedDB before the editor mounts. If that fails they stay in localStorage. */
+export const prepareSidecar = (): Promise<void> => {
+  if (!sidecar) return Promise.resolve()
+  sidecarReady ??= sidecar.ready().then(
+    () => {
+      sidecar.onWriteError = () => (sidecarWriteFailed = true)
+      setSidecarStorage(sidecar)
+    },
+    () => undefined,
+  )
+  return sidecarReady
+}
+
+export const loadDemoPage = async (documentId: string): Promise<LoadedPage> => {
+  await prepareSidecar()
+  return loadPage(documentId, { primary: indexedDbStore, fallback: localStore, session: demoSession })
+}

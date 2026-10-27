@@ -1,5 +1,6 @@
 import type { Editor, JSONContent } from '@tiptap/core'
 import type { Transaction } from '@tiptap/pm/state'
+import { getSidecarStorage } from '../../editor/core'
 import { collectDescendantIds } from './messageTree'
 import { COMMENT_AUTHOR, COMMENTS_FORMAT, type CommentThread } from './types'
 
@@ -12,7 +13,7 @@ const isThread = (value: unknown): value is CommentThread =>
 
 const load = (storageKey: string): { threads: CommentThread[]; dropped: number } => {
   try {
-    const raw = JSON.parse(localStorage.getItem(storageKey) ?? 'null') as unknown
+    const raw = JSON.parse(getSidecarStorage().getItem(storageKey) ?? 'null') as unknown
     const list = Array.isArray(raw)
       ? raw
       : typeof raw === 'object' && raw !== null && Array.isArray((raw as { threads?: unknown }).threads)
@@ -227,7 +228,7 @@ export class CommentStore {
 
   private persist(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify({ format: COMMENTS_FORMAT, threads: this.threads }))
+      getSidecarStorage().setItem(this.storageKey, JSON.stringify({ format: COMMENTS_FORMAT, threads: this.threads }))
       this.persistenceDegraded = false
     } catch {
       // Quota: comments stay in memory; the panel discloses this instead of claiming durability.

@@ -1,6 +1,7 @@
 import type { Editor } from '@tiptap/core'
 import { classifyTransaction, summarizeChanges } from './classify'
 import { STORAGE_FORMAT, VERSION_SCHEMA } from './types'
+import { getSidecarStorage } from '../store/sidecarStorage'
 import type { VersionChange, VersionEntry, VersionEvent } from './types'
 
 const MAX_VERSIONS = 50
@@ -43,7 +44,7 @@ const isEvent = (event: unknown): event is VersionEvent =>
 /** Reads both the snapshot entries and the event log; migrates the legacy bare entry array. */
 const load = (storageKey: string): { entries: VersionEntry[]; events: VersionEvent[] } => {
   try {
-    const raw = JSON.parse(localStorage.getItem(storageKey) ?? 'null') as unknown
+    const raw = JSON.parse(getSidecarStorage().getItem(storageKey) ?? 'null') as unknown
     if (Array.isArray(raw)) return { entries: raw.filter(isEntry), events: [] }
     if (typeof raw === 'object' && raw !== null) {
       const container = raw as { entries?: unknown; events?: unknown }
@@ -334,7 +335,7 @@ export class VersionStore {
 
   private persist(): void {
     const write = () =>
-      localStorage.setItem(
+      getSidecarStorage().setItem(
         this.storageKey,
         JSON.stringify({ format: STORAGE_FORMAT, entries: this.versions, events: this.events }),
       )
