@@ -17,6 +17,7 @@ import {
 } from './demoSession'
 import { PagesSidebar } from './PagesSidebar'
 import { StorageTools } from './StorageTools'
+import { collectPageReferenceIds } from './pageRefs'
 import { AiTools } from './AiTools'
 import { PageToolbar } from './PageToolbar'
 import { inStack, SaveStatus } from './SaveStatus'
@@ -61,6 +62,17 @@ function Page({
   const page = usePageController({ registry, initialContent, documentId, settings: demoSettings })
   // While this page is open the engine edits it through this editor, so history and autosave see engine edits.
   const openEditor = page.editor
+  const [bodyRefs, setBodyRefs] = useState<ReadonlySet<string>>(() => new Set())
+  useEffect(() => {
+    if (!openEditor) return
+    const sync = () => setBodyRefs(collectPageReferenceIds(openEditor.getJSON()))
+    const first = window.setTimeout(sync, 0)
+    openEditor.on('update', sync)
+    return () => {
+      window.clearTimeout(first)
+      openEditor.off('update', sync)
+    }
+  }, [openEditor])
   useEffect(() => {
     if (!openEditor) return
     const detach = demoPagesEngine.attach(documentId, openEditor)
@@ -113,6 +125,7 @@ function Page({
         pages={demoPages}
         blobs={demoBlobs}
         parentId={documentId}
+        excludeIds={bodyRefs}
         version={previewVersion}
         onOpen={openPageById}
       />
