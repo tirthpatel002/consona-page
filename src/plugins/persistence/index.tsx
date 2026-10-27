@@ -49,6 +49,8 @@ export interface DocPersistenceStorage {
   /** Kept for callers that only need to know whether the last save failed. */
   degraded: boolean
   flush?: () => void
+  /** Stops the close-tab prompt, for when the user has explicitly chosen to discard unsaved edits. */
+  allowUnload?: () => void
   retry?: () => void
   subscribe: (listener: () => void) => () => void
 }
@@ -78,6 +80,7 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
         message: '',
         degraded: false,
         flush: undefined,
+        allowUnload: undefined,
         retry: undefined,
         subscribe: (listener) => {
           listeners.add(listener)
@@ -157,8 +160,12 @@ const createDocPersistenceExtension = (session: PersistenceSession) =>
         if (document.visibilityState === 'hidden') flush()
       }
       // Closing the tab with unsaved changes asks first (the browser shows its own generic prompt).
+      let unloadAllowed = false
+      storage.allowUnload = () => {
+        unloadAllowed = true
+      }
       const onBeforeUnload = (event: BeforeUnloadEvent) => {
-        if (storage.status === 'error' || storage.status === 'conflict') event.preventDefault()
+        if (!unloadAllowed && (storage.status === 'error' || storage.status === 'conflict')) event.preventDefault()
       }
       window.addEventListener('beforeunload', onBeforeUnload)
       editor.on('update', onUpdate)

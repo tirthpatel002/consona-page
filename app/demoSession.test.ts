@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryStore, type JsonObject, type PageStore } from '../src/editor/core'
-import { loadPage } from './demoSession'
+import { loadPage, MissingPageError } from './demoSession'
 
 const doc = (t: string) =>
   ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: t }] }] }) as JsonObject
@@ -55,5 +55,29 @@ describe('loading with a primary store and a fallback', () => {
     const s2 = { store: primary, revision: undefined as number | null | undefined }
     await loadPage('new', { primary, fallback: createMemoryStore(), session: s2 })
     expect(s2.revision).toBeNull()
+  })
+
+  it('surfaces a missing record after prior authority instead of reopening the old copy', async () => {
+    const primary = createMemoryStore()
+    await primary.put('p', doc('held'))
+    const fallback = createMemoryStore()
+    await fallback.put('p', doc('stale local copy'))
+    await loadPage('p', { primary, fallback, session: { store: primary, revision: undefined } })
+    await primary.remove('p') // the database was wiped, the marker survived
+    const session = { store: primary, revision: undefined as number | null | undefined }
+    await expect(loadPage('p', { primary, fallback, session })).rejects.toBeInstanceOf(MissingPageError)
+  })
+
+  it('still opens the page when the authority marker cannot be written', async () => {
+    const primary = createMemoryStore()
+    await primary.put('p', doc('x'))
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError')
+    })
+    const session = { store: primary, revision: undefined as number | null | undefined }
+    const loaded = await loadPage('p', { primary, fallback: createMemoryStore(), session })
+    spy.mockRestore()
+    expect(JSON.stringify(loaded.content)).toContain('x')
+    expect(localStorage.getItem('page:store-authority:p')).toBeNull() // no marker, so no protection later
   })
 })

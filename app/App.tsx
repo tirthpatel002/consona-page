@@ -3,7 +3,7 @@ import type { JSONContent } from '@tiptap/core'
 import { composePlugins, PageEditor, usePageController } from '../src/editor/core'
 import initialDoc from './content/initial-doc.json'
 import { PageBanner } from '../src/utils/banner/PageBanner'
-import { loadDemoPage } from './demoSession'
+import { loadDemoPage, MissingPageError, openOlderLocalCopy } from './demoSession'
 import { PageToolbar } from './PageToolbar'
 import { SaveStatus } from './SaveStatus'
 import { pagePlugins } from './plugins'
@@ -30,6 +30,7 @@ const documentId = ((): string => {
 const TITLE = 'Page'
 
 type Load =
+  | { readonly state: 'missing'; readonly older: JSONContent | null }
   | { readonly state: 'loading' }
   | { readonly state: 'error' }
   | { readonly state: 'ready'; readonly content: JSONContent }
@@ -60,8 +61,14 @@ export function App() {
       (loaded) => {
         if (!cancelled) setLoad({ state: 'ready', content: loaded.content ?? initialDoc })
       },
-      () => {
-        if (!cancelled) setLoad({ state: 'error' })
+      (error: unknown) => {
+        if (cancelled) return
+        if (error instanceof MissingPageError) {
+          void openOlderLocalCopy(documentId).then(
+            (older) => !cancelled && setLoad({ state: 'missing', older: older?.content ?? null }),
+            () => !cancelled && setLoad({ state: 'missing', older: null }),
+          )
+        } else setLoad({ state: 'error' })
       },
     )
     return () => {
@@ -75,6 +82,30 @@ export function App() {
         Loading your page…
       </div>
     )
+  if (load.state === 'missing') {
+    const { older } = load
+    return (
+      <div className="app-frame app-status" role="alert">
+        <p>This page was saved in this browser before, but its saved copy is gone. Nothing was opened or changed.</p>
+        {older && (
+          <p>
+            An older copy from before the storage upgrade exists. It may be out of date and will become the saved page
+            if you open it.
+          </p>
+        )}
+        <div className="app-status__actions">
+          {older && (
+            <button type="button" onClick={() => setLoad({ state: 'ready', content: older })}>
+              Open the older copy
+            </button>
+          )}
+          <button type="button" onClick={() => setLoad({ state: 'ready', content: initialDoc })}>
+            Start with the sample page
+          </button>
+        </div>
+      </div>
+    )
+  }
   if (load.state === 'error') {
     return (
       <div className="app-frame app-status" role="alert">

@@ -10,7 +10,7 @@ export interface IndexedDbStoreOptions {
    * Import a document saved by the earlier localStorage format (`page:doc:<id>`) the first time an id
    * is read and nothing is stored for it. The old copy is left in place, so a downgrade still works.
    */
-  readonly migrateLegacyLocalStorage?: boolean
+  readonly migrateLegacyLocalStorage?: boolean | ((id: string) => boolean)
 }
 
 const STORE = 'pages'
@@ -85,7 +85,8 @@ export function createIndexedDbStore(options: IndexedDbStoreOptions = {}): PageS
       const db = await open()
       const found = (await request(db.transaction(STORE).objectStore(STORE).get(id))) as StoredPage | undefined
       if (found) return found
-      if (!migrateLegacyLocalStorage) return null
+      if (typeof migrateLegacyLocalStorage === 'function' ? !migrateLegacyLocalStorage(id) : !migrateLegacyLocalStorage)
+        return null
       const legacy = readLegacy(id)
       // Only import when still absent: a concurrent write wins over the old copy.
       return legacy ? write(id, legacy, { expectedRevision: null }).catch(() => this.get(id)) : null

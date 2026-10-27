@@ -37,6 +37,11 @@ body {
   cursor: pointer;
   color: inherit;
 }
+.app-status__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 .app-status {
   padding: 2rem 1rem;
 }

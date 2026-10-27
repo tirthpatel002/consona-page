@@ -7,9 +7,20 @@ import type { PersistenceSession } from '../src/plugins/persistence'
  * available or cannot be opened for a page that never lived there, it saves to localStorage instead,
  * in the original format.
  */
+const authorityKey = (id: string) => `page:store-authority:${id}`
+function hasPrimaryAuthority(id: string): boolean {
+  try {
+    return localStorage.getItem(authorityKey(id)) === 'indexeddb'
+  } catch {
+    return false
+  }
+}
+
 const localStore = createLocalStorageStore()
 const indexedDbStore: PageStore | null =
-  typeof indexedDB === 'undefined' ? null : createIndexedDbStore({ migrateLegacyLocalStorage: true })
+  typeof indexedDB === 'undefined'
+    ? null
+    : createIndexedDbStore({ migrateLegacyLocalStorage: (id) => !hasPrimaryAuthority(id) })
 
 export const demoSession: PersistenceSession = { store: indexedDbStore ?? localStore, revision: undefined }
 
@@ -17,7 +28,19 @@ export interface LoadedPage {
   readonly content: JSONContent | null
 }
 
-const authorityKey = (id: string) => `page:store-authority:${id}`
+/** The primary store held this page before and no longer has it. */
+export class MissingPageError extends Error {
+  constructor(readonly documentId: string) {
+    super("The saved page is missing from this browser's database.")
+    this.name = 'MissingPageError'
+  }
+}
+
+/** Explicit recovery choices after a MissingPageError. Each one is chosen by the user, never automatic. */
+export async function openOlderLocalCopy(documentId: string): Promise<LoadedPage | null> {
+  const found = await localStore.get(documentId)
+  return found ? { content: found.doc as JSONContent } : null
+}
 
 export interface LoadDeps {
   readonly primary: PageStore | null
@@ -33,13 +56,7 @@ export interface LoadDeps {
  */
 export async function loadPage(documentId: string, deps: LoadDeps): Promise<LoadedPage> {
   const { primary, fallback, session } = deps
-  const usedPrimary = (() => {
-    try {
-      return localStorage.getItem(authorityKey(documentId)) === 'indexeddb'
-    } catch {
-      return false
-    }
-  })()
+  const usedPrimary = hasPrimaryAuthority(documentId)
   const attempt = async (store: PageStore): Promise<LoadedPage> => {
     const found = await store.get(documentId)
     session.store = store
@@ -49,6 +66,10 @@ export async function loadPage(documentId: string, deps: LoadDeps): Promise<Load
   if (primary) {
     try {
       const loaded = await attempt(primary)
+      if (usedPrimary && loaded.content === null) {
+        // IndexedDB held this page before and now has no record: surface it, never reopen an older copy silently.
+        throw new MissingPageError(documentId)
+      }
       try {
         localStorage.setItem(authorityKey(documentId), 'indexeddb')
       } catch {
@@ -56,7 +77,7 @@ export async function loadPage(documentId: string, deps: LoadDeps): Promise<Load
       }
       return loaded
     } catch (error) {
-      if (usedPrimary) throw error
+      if (usedPrimary || error instanceof MissingPageError) throw error
     }
   } else if (usedPrimary) {
     throw new Error('This page was saved in IndexedDB, which is not available now.')

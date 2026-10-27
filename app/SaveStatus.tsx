@@ -46,12 +46,23 @@ function Conflict({ editor, message }: { readonly editor: Editor; readonly messa
         Download my version
       </button>
       {confirming ? (
-        <button type="button" onClick={() => window.location.reload()}>
+        <button
+          type="button"
+          onClick={() => {
+            editor.storage.docPersistence.allowUnload?.()
+            window.location.reload()
+          }}
+        >
           Discard my edits and reload
         </button>
       ) : (
         <button type="button" onClick={() => setConfirming(true)}>
           Reload latest…
+        </button>
+      )}
+      {confirming && (
+        <button type="button" onClick={() => setConfirming(false)}>
+          Cancel
         </button>
       )}
     </div>
