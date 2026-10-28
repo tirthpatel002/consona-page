@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   pageToolbarItems,
   historyToolbarItems,
@@ -9,7 +9,7 @@ import {
 } from '../src/editor/core'
 
 /** Formatting chrome under the banner. Title lives on the banner, not here. */
-export function PageToolbar({ page }: { readonly page: PageController }) {
+export function PageToolbar({ page, end }: { readonly page: PageController; readonly end?: ReactNode }) {
   const [versionsOpen, setVersionsOpen] = useState(false)
   const { editor, versionStore } = page
   if (!editor) return null
@@ -42,6 +42,7 @@ export function PageToolbar({ page }: { readonly page: PageController }) {
         panels={page.registry.panels}
         openPanels={page.openPanels}
         onTogglePanel={page.togglePanel}
+        end={end}
       />
       {versionsOpen && versionStore && (
         <VersionsModal editor={editor} store={versionStore} close={() => setVersionsOpen(false)} />

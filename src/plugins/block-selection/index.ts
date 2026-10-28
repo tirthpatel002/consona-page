@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import type { BlockAction, PagePlugin } from '../../editor/core'
 import {
   blockSelectionActive,
@@ -6,7 +7,19 @@ import {
   runOnSelection,
   selectBlockAt,
 } from './blockSelection'
+import { SelectionBar } from './SelectionBar'
 import './block-selection.css'
+
+export { setSelectionHost, type SelectionHost } from './selectionHost'
+export {
+  copySelected,
+  deleteSelected,
+  downloadSelected,
+  duplicateSelected,
+  moveSelected,
+  selectedBlocksJson,
+  removeSelectedAfterHandoff,
+} from './selectionActions'
 
 const isBlock = (target: { node: { type: { isInGroup: (group: string) => boolean } } }) =>
   target.node.type.isInGroup('block')
@@ -49,4 +62,10 @@ export const blockSelectionPlugin: PagePlugin = {
   id: 'block-selection',
   extensions: [blockSelectionExtension],
   blockActions,
+  overlays: [
+    {
+      id: 'block-selection:bar',
+      render: (editor) => createElement(SelectionBar, { editor }),
+    },
+  ],
 }

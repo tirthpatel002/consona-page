@@ -10,7 +10,10 @@ import { createPageEngine } from '../src/editor/engine'
 import { textPlugin } from '../src/plugins/text'
 import { AiTools } from './AiTools'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-const button = (text: string) => [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === text)
+const button = (text: string) =>
+  [...document.querySelectorAll('button')].find(
+    (b) => b.textContent?.trim() === text || b.getAttribute('aria-label') === text || b.getAttribute('title') === text,
+  )
 const click = async (text: string) => {
   const found = button(text)
   if (!found) throw new Error(`Missing ${text}`)
@@ -41,7 +44,7 @@ const mountApplied = async (undoResult: EditOutcome) => {
     ),
   )
   await click('AI actions')
-  await click('Prepare changes')
+  await click('Uppercase')
   expect(document.querySelector('[role=dialog]')?.contains(document.activeElement)).toBe(true)
   await click('Accept')
   expect(document.querySelector('[role=dialog]')?.contains(document.activeElement)).toBe(true)

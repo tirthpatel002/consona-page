@@ -1,5 +1,7 @@
 import { mergeAttributes, Node } from '@tiptap/core'
 import { DOMSerializer } from '@tiptap/pm/model'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { audioFrameSpec, videoFrameSpec, wireMediaPlayers } from './audioPlayer'
 import { acquireBlobUrl, isBlobRef, releaseBlobUrl } from './host'
 import {
   asFocus,
@@ -12,6 +14,19 @@ import {
   isSafeMediaSrc,
   type MediaKind,
 } from './sources'
+
+/** Frame shape that requires a rebuild (would remount audio/video if replaced casually). */
+const frameKey = (node: ProseMirrorNode) => {
+  const kind = asKind(node.attrs.kind)
+  const alt = typeof node.attrs.alt === 'string' ? node.attrs.alt : ''
+  const link = isSafeLink(node.attrs.link) ? String(node.attrs.link) : ''
+  return [
+    kind,
+    kind === 'image' && alt ? 'alt' : '',
+    kind === 'image' && link ? 'link' : '',
+    kind !== 'audio' && kind !== 'file' ? 'resize' : '',
+  ].join('|')
+}
 
 export type { MediaKind } from './sources'
 export type MediaAlign = 'left' | 'center' | 'right'
@@ -123,6 +138,7 @@ export const Media = Node.create({
         })
       }
       syncBlob(current)
+      wireMediaPlayers(dom)
       // A picture or player that fails to load shows a visible notice instead of collapsing; the block, caption and ids stay.
       const mark = (event: Event, broken: boolean) => {
         const target = event.target
@@ -151,6 +167,47 @@ export const Media = Node.create({
       const watchTimers = [setTimeout(watch, 300), setTimeout(watch, 1500)]
       dom.addEventListener('load', (event) => mark(event, false), true)
       dom.addEventListener('loadeddata', (event) => mark(event, false), true)
+      const syncFigureAttrs = (fresh: HTMLElement) => {
+        const figure = dom as HTMLElement
+        const keep = [...figure.classList].filter((name) => name.startsWith('ProseMirror-'))
+        for (const attr of [...figure.attributes]) figure.removeAttribute(attr.name)
+        for (const attr of [...fresh.attributes]) figure.setAttribute(attr.name, attr.value)
+        figure.classList.add(...keep)
+      }
+      const patchMedia = (next: typeof initial) => {
+        const figure = dom as HTMLElement
+        const media = figure.querySelector('img, video, audio')
+        const kind = asKind(next.attrs.kind)
+        const src = isSafeMediaSrc(kind, next.attrs.src) ? String(next.attrs.src).trim() : ''
+        // Blob-backed sources are applied by syncBlob; only patch explicit document src here.
+        if (media && !heldRef) {
+          if (src) {
+            if (media.getAttribute('src') !== src) media.setAttribute('src', src)
+          } else if (media.hasAttribute('src') && !heldUrl) media.removeAttribute('src')
+        }
+        if (media instanceof HTMLImageElement) {
+          const alt = asText(next.attrs.alt, 300)
+          if (media.getAttribute('alt') !== alt) media.setAttribute('alt', alt)
+          const zoom = asZoom(next.attrs.zoom)
+          const fx = asFocus(next.attrs.focusX)
+          const fy = asFocus(next.attrs.focusY)
+          media.style.setProperty('--media-zoom', String(zoom))
+          media.style.setProperty('--media-x', `${String(fx)}%`)
+          media.style.setProperty('--media-y', `${String(fy)}%`)
+        }
+        const altChip = figure.querySelector('.page-media__alt i')
+        if (altChip) altChip.textContent = asText(next.attrs.alt, 300)
+        const linkChip = figure.querySelector<HTMLAnchorElement>('.page-media__link')
+        if (linkChip) {
+          const link = isSafeLink(next.attrs.link) ? String(next.attrs.link).trim() : ''
+          linkChip.href = link
+          linkChip.title = link
+          linkChip.textContent = link
+            .replace(/^https?:\/\//i, '')
+            .replace(/^mailto:/i, '')
+            .slice(0, 40)
+        }
+      }
       return {
         dom,
         contentDOM,
@@ -161,24 +218,25 @@ export const Media = Node.create({
         },
         update: (next) => {
           if (next.type !== current.type) return false
+          const previous = current
           current = next
           const fresh = render(next).dom as HTMLElement
-          const figure = dom as HTMLElement
-          const keep = [...figure.classList].filter((name) => name.startsWith('ProseMirror-'))
-          for (const attr of [...figure.attributes]) figure.removeAttribute(attr.name)
-          for (const attr of [...fresh.attributes]) figure.setAttribute(attr.name, attr.value)
-          figure.classList.add(...keep)
-          const frame = figure.querySelector('.page-media__frame')
+          syncFigureAttrs(fresh)
+          const frame = (dom as HTMLElement).querySelector('.page-media__frame')
           const freshFrame = fresh.querySelector('.page-media__frame')
-          if (frame && freshFrame) {
-            // The same failing source will not fire another error, so carry the notice over to the new frame.
+          // Rebuild the frame only when its structure changes. Replacing audio/video for caption or
+          // align edits was pausing and reloading players whenever the edit bar opened or closed.
+          if (frame && freshFrame && frameKey(previous) !== frameKey(next)) {
             const srcOf = (el: Element) => el.querySelector('img, video, audio')?.getAttribute('src') ?? ''
             if (frame.hasAttribute('data-broken') && srcOf(frame) === srcOf(freshFrame)) {
               freshFrame.setAttribute('data-broken', '')
             }
             frame.replaceWith(freshFrame)
+            wireMediaPlayers(dom)
             watch()
             setTimeout(watch, 300)
+          } else {
+            patchMedia(next)
           }
           syncBlob(next)
           return true
@@ -191,18 +249,20 @@ export const Media = Node.create({
           return true
         },
         stopEvent: (event) => {
-          // Presses on the picture of a video (above its native controls strip) select the block.
+          // Presses on the video picture (above the custom control bar) select the block.
           if (
             event instanceof MouseEvent &&
             event.target instanceof HTMLVideoElement &&
-            event.clientY <= event.target.getBoundingClientRect().bottom - 56
+            event.clientY <= event.target.getBoundingClientRect().bottom - 52
           )
             return false
           return (
             event.target instanceof Element &&
             (event.target.closest(`[${MEDIA_TOOLBAR_SLOT}]`) !== null ||
-              // Players, the link chip and the alt badge handle their own presses and keys.
-              (event.target.closest('audio, video, iframe, a, .page-media__alt') !== null &&
+              // Players, custom chrome, the link chip and the alt badge handle their own presses.
+              (event.target.closest(
+                'audio, video, iframe, a, .page-media__alt, .page-media__audio, .page-media__video-ui',
+              ) !== null &&
                 event.target.closest('figcaption') === null))
           )
         },
@@ -227,8 +287,8 @@ export const Media = Node.create({
     let frame: unknown[]
     // A stored file has no source here; the node view gives it an object URL while the block is on screen.
     const withSrc = <T extends Record<string, string>>(attrs: T) => (src ? { src, ...attrs } : attrs)
-    if (kind === 'video') frame = ['video', withSrc({ controls: '', preload: 'metadata' })]
-    else if (kind === 'audio') frame = ['audio', withSrc({ controls: '', preload: 'metadata' })]
+    if (kind === 'video') frame = videoFrameSpec(withSrc({}))
+    else if (kind === 'audio') frame = audioFrameSpec(withSrc({}))
     else if (kind === 'embed') {
       frame = [
         'iframe',

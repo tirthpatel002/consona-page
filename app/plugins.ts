@@ -24,7 +24,7 @@ import { columnsPlugin } from '../src/plugins/columns'
 import { exportPlugin } from '../src/plugins/export'
 import { createMediaPlugin, inlineStoredFiles } from '../src/plugins/media'
 import { setExportHost } from '../src/plugins/export/host'
-import { showExportOmitted } from './exportNotice'
+import { showExportOmitted } from './exportOmitted'
 import { listsPlugin } from '../src/plugins/lists'
 import { textPlugin } from '../src/plugins/text'
 

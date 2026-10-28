@@ -1,6 +1,7 @@
 import { useEditorState, type Editor } from '@tiptap/react'
 import { NodeSelection } from '@tiptap/pm/state'
 import { createPortal } from 'react-dom'
+import { blockSelectionPluginKey } from '../block/turnIntoSelection'
 import { useFloatingPlacement, type AnchorRect } from '../ui/placement'
 import { ToolbarButton } from './ToolbarButton'
 import type { ToolbarItem } from './types'
@@ -15,6 +16,10 @@ export function BubbleToolbar({ editor, items }: { readonly editor: Editor; read
     editor,
     selector: ({ editor: current }): { anchor: AnchorRect | null; active: boolean[]; enabled: boolean[] } => {
       const { selection } = current.state
+      // Whole-block selection owns the floating bar; the text bubble must not replace it.
+      if (blockSelectionPluginKey.getState(current.state)) {
+        return { anchor: null, active: items.map(() => false), enabled: items.map(() => false) }
+      }
       // A block whose node spec sets `bubbleless` has its own toolbar, so the text bubble stays away from it.
       const blockNode =
         selection instanceof NodeSelection &&

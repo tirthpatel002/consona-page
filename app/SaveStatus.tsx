@@ -1,6 +1,7 @@
-import { useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/core'
+import { showToast } from './toast'
 
 const LABELS = { idle: '', saving: 'Saving…', saved: 'Saved on this device' } as const
 
@@ -21,7 +22,16 @@ export function SaveStatus({
   const storage = editor.storage.docPersistence
   const status = useSyncExternalStore(storage.subscribe, () => storage.status)
   const message = useSyncExternalStore(storage.subscribe, () => storage.message)
-  if (status === 'idle') return <div className="save-status" role="status" aria-live="polite" />
+
+  useEffect(() => {
+    if (status === 'idle' || status === 'error' || status === 'conflict') return
+    const text =
+      message ||
+      (status === 'saved' && settingsFailed ? 'Text saved on this device. Page lock not saved.' : LABELS[status])
+    if (!text) return
+    showToast(text, { sticky: status === 'saving', durationMs: status === 'saved' ? 2800 : undefined })
+  }, [status, message, settingsFailed])
+
   if (status === 'error') {
     return inStack(
       errorHost,
@@ -34,12 +44,7 @@ export function SaveStatus({
     )
   }
   if (status === 'conflict') return inStack(errorHost, <Conflict editor={editor} message={message} />)
-  return (
-    <div className="save-status" role="status" aria-live="polite">
-      {message ||
-        (status === 'saved' && settingsFailed ? 'Text saved on this device. Page lock not saved.' : LABELS[status])}
-    </div>
-  )
+  return null
 }
 
 /** The page changed elsewhere. Reloading would drop what is on screen, so it needs a saved copy or a clear choice. */

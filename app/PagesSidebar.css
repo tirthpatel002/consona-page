@@ -1,9 +1,3 @@
-.pages-sidebar .pages-actions {
-  gap: 0;
-  flex-wrap: wrap;
-  max-width: 7rem;
-  justify-content: flex-end;
-}
 .pages-sidebar .pages-actions button {
   display: inline-flex;
   align-items: center;
@@ -14,13 +8,10 @@
   min-width: 1.5rem;
   min-height: 1.5rem;
 }
-.pages-sidebar .pages-actions button:hover {
+.pages-sidebar .pages-actions button:hover,
+.pages-sidebar .pages-actions button[aria-expanded='true'] {
   background: var(--page-hover-fill);
   color: var(--page-fg);
-}
-.pages-sidebar .pages-actions button:disabled {
-  opacity: 0.3;
-  cursor: default;
 }
 .pages-sidebar button:focus-visible,
 .pages-sidebar select:focus-visible,
@@ -41,32 +32,46 @@
   text-decoration: none;
   padding: 0.5rem;
 }
-.pages-sidebar .pages-move {
-  display: flex;
-  align-items: end;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-  padding: 0.5rem;
-  border: 1px solid var(--page-border);
-  border-radius: var(--page-r-1);
-}
-.pages-move label {
+.pages-move-destinations {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  width: 100%;
-}
-.pages-move select {
-  max-width: 100%;
-  font: inherit;
-  padding: 0.3rem;
-  background: var(--page-bg);
-  color: var(--page-fg);
+  gap: 2px;
+  margin-top: 12px;
+  max-height: min(50vh, 320px);
+  overflow: auto;
+  padding: 4px;
   border: 1px solid var(--page-border);
   border-radius: var(--page-r-1);
+  background: var(--page-bg);
+}
+.ai-dialog .pages-move-destinations button {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font: inherit;
+  color: var(--page-fg);
+  background: transparent;
+  border: 0;
+  border-radius: var(--page-r-1);
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+.ai-dialog .pages-move-destinations button:hover {
+  background: var(--page-hover-fill);
+}
+.ai-dialog .pages-move-destinations button.is-selected {
+  background: var(--page-selection-surface);
+  font-weight: 600;
 }
 .pages-sidebar .pages-trash .pages-actions {
+  position: static;
+  transform: none;
   display: inline-flex;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  background: none;
   max-width: none;
 }
 .pages-sidebar .pages-trash .pages-actions button {

@@ -18,7 +18,7 @@ const markItem = (
   label,
   title: shortcut ? `${label} (${shortcut.replace('Mod', '⌘').replace('Shift', '⇧').replaceAll('-', '')})` : label,
   icon,
-  placement: 'both',
+  placement: 'bubble',
   isActive: (editor) => editor.isActive(mark),
   run: (editor) => void toggleMark.run(editor, mark),
 })
@@ -35,7 +35,7 @@ const bubbleItems: readonly ToolbarItem[] = [
     label: 'Link',
     title: 'Link',
     icon: 'link',
-    placement: 'both',
+    placement: 'bubble',
     isActive: (editor) => editor.isActive('link'),
     popover: ({ editor, close }) => <LinkForm editor={editor} close={close} />,
   },
@@ -45,7 +45,7 @@ const bubbleItems: readonly ToolbarItem[] = [
     label: 'Colour',
     title: 'Text and highlight colour',
     icon: 'color',
-    placement: 'both',
+    placement: 'bubble',
     isActive: (editor) =>
       Boolean(editor.getAttributes('textStyle').color || editor.getAttributes('textStyle').backgroundColor),
     popover: ({ editor, close }) => (

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useEditorState, type Editor } from '@tiptap/react'
 import type { BlockModule } from '../block/types'
 import type { PanelDefinition } from '../plugin/types'
@@ -15,6 +16,8 @@ interface ToolbarProps {
   readonly panels: readonly PanelDefinition[]
   readonly openPanels: ReadonlySet<string>
   readonly onTogglePanel: (id: string) => void
+  /** App tools after the spacer (icon buttons that belong with the chrome). */
+  readonly end?: ReactNode
 }
 
 function groupItems(items: readonly ToolbarItem[]): ToolbarItem[][] {
@@ -23,7 +26,7 @@ function groupItems(items: readonly ToolbarItem[]): ToolbarItem[][] {
   return [...groups.values()]
 }
 
-export function Toolbar({ editor, title, items, blocks, panels, openPanels, onTogglePanel }: ToolbarProps) {
+export function Toolbar({ editor, title, items, blocks, panels, openPanels, onTogglePanel, end }: ToolbarProps) {
   const state = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
@@ -80,6 +83,7 @@ export function Toolbar({ editor, title, items, blocks, panels, openPanels, onTo
           onToggle={() => onTogglePanel(panel.id)}
         />
       ))}
+      {end}
     </header>
   )
 }

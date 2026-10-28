@@ -22,3 +22,10 @@
   background: color-mix(in oklab, var(--page-selection) 6%, transparent);
   pointer-events: none;
 }
+.page-selection-bar button.is-danger {
+  color: var(--page-danger, #dc2626);
+}
+.page-selection-bar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

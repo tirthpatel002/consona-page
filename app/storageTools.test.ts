@@ -7,7 +7,7 @@ import {
   type SidecarStorage,
 } from '../src/editor/core'
 const DAY = 24 * 60 * 60 * 1000
-import { countInlineFiles, migratePageFiles, scanOrphans, sweepOrphans } from './storageTools'
+import { countInlineFiles, migratePageFiles, scanOrphans, sweepOrphans } from './storageOps'
 
 const PNG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='

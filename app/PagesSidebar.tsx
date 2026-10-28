@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowUp, ArrowDown, CornerDownRight, FilePlus, Pencil, Trash2, Plus, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Ellipsis, FilePlus, Plus } from 'lucide-react'
 import './PagesSidebar.css'
 import { searchPages, type PageRecord, type PageSearchResult } from '../src/editor/core'
+import { MenuFlyout } from '../src/editor/core/ui/MenuFlyout'
+import { AiDialog } from './AiDialog'
+import { showToast } from './toast'
 import { demoPages, demoRegistry } from './demoSession'
 
 interface TreeNode {
@@ -27,17 +30,43 @@ interface Props {
 /** The page tree: open, add, rename, move to trash and restore, plus search across pages. */
 export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onChanged }: Props) {
   const renameActive = useRef<string | null>(null)
+  const moreAnchor = useRef<HTMLElement | null>(null)
   const [moving, setMoving] = useState<string | null>(null)
   const [destination, setDestination] = useState('')
   const [tree, setTree] = useState<readonly TreeNode[]>([])
   const [trashed, setTrashed] = useState<readonly PageRecord[]>([])
   const [renaming, setRenaming] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
-  const [note, setNote] = useState<{ text: string; undo?: () => Promise<void> } | null>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<readonly PageSearchResult[] | null>(null)
   const [truncated, setTruncated] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [menuId, setMenuId] = useState<string | null>(null)
+
+  const closeMenu = useCallback(() => {
+    moreAnchor.current = null
+    setMenuId(null)
+  }, [])
+
+  useEffect(() => {
+    if (!menuId) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return closeMenu()
+      if (target.closest('.page-menu-flyout')) return
+      if (moreAnchor.current?.contains(target)) return
+      closeMenu()
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMenu()
+    }
+    window.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [menuId, closeMenu])
 
   const refresh = useCallback(
     () =>
@@ -68,7 +97,7 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
         () => {
           if (!cancelled) {
             setResults([])
-            setNote({ text: 'Search could not read the saved pages.' })
+            showToast('Search could not read the saved pages.', { tone: 'error' })
           }
         },
       )
@@ -84,7 +113,7 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
       await action()
       onChanged()
     } catch (error) {
-      setNote({ text: error instanceof Error ? error.message : 'That did not work.' })
+      showToast(error instanceof Error ? error.message : 'That did not work.', { tone: 'error' })
     }
   }
 
@@ -100,7 +129,9 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
       renameActive.current = null
       setRenaming(null)
       const title = draft.trim()
-      if (title) await demoRegistry.rename(id, title)
+      if (!title) return
+      await demoRegistry.rename(id, title)
+      showToast(`Renamed to "${title}".`)
     })
 
   const trash = (record: PageRecord) =>
@@ -108,8 +139,7 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
       const currentPath = record.id === currentId ? [] : await demoRegistry.path(currentId)
       const hidesCurrent = record.id === currentId || currentPath.some((parent) => parent.id === record.id)
       const done = await demoRegistry.moveToTrash(record.id)
-      setNote({
-        text: `"${record.title}" moved to trash.`,
+      showToast(`"${record.title}" moved to trash.`, {
         undo: async () => {
           await done.undo()
           onChanged()
@@ -130,8 +160,7 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
     run(async () => {
       const done = await demoRegistry.move(record.id, parentId, index)
       setMoving(null)
-      setNote({
-        text: `Moved "${record.title}".`,
+      showToast(`Moved "${record.title}".`, {
         undo: async () => {
           await done.undo()
           onChanged()
@@ -144,127 +173,198 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
     if (index >= 0 && index < siblings.length) void move(record, record.parentId, index)
   }
 
-  const row = (node: TreeNode, depth: number) => (
-    <li key={node.record.id}>
-      <div className="pages-row" style={{ paddingLeft: `${String(0.5 + depth * 0.9)}rem` }}>
-        {renaming === node.record.id ? (
-          <input
-            className="pages-rename"
-            aria-label="Page title"
-            autoFocus
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onBlur={() => void finishRename(node.record.id)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void finishRename(node.record.id)
-              if (event.key === 'Escape') {
-                renameActive.current = null
-                setRenaming(null)
-              }
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className="pages-open"
-            aria-current={node.record.id === currentId ? 'page' : undefined}
-            onClick={() => onOpen(node.record.id)}
-          >
-            {node.record.title || 'Untitled'}
-          </button>
-        )}
-        <span className="pages-actions">
-          <button
-            type="button"
-            aria-label={`Add a page inside ${node.record.title}`}
-            onClick={() => void add(node.record.id)}
-          >
-            <FilePlus size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Rename ${node.record.title}`}
-            onClick={() => {
-              renameActive.current = node.record.id
-              setDraft(node.record.title)
-              setRenaming(node.record.id)
-            }}
-          >
-            <Pencil size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Move ${node.record.title} to trash`}
-            onClick={() => void trash(node.record)}
-          >
-            <Trash2 size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Move ${node.record.title}`}
-            onClick={() => {
-              setMoving(node.record.id)
-              setDestination(node.record.parentId ?? '')
-            }}
-          >
-            <CornerDownRight size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Move ${node.record.title} up`}
-            disabled={records.filter((r) => r.parentId === node.record.parentId)[0]?.id === node.record.id}
-            onClick={() => reorder(node.record, -1)}
-          >
-            <ArrowUp size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Move ${node.record.title} down`}
-            disabled={records.filter((r) => r.parentId === node.record.parentId).at(-1)?.id === node.record.id}
-            onClick={() => reorder(node.record, 1)}
-          >
-            <ArrowDown size={15} aria-hidden="true" />
-          </button>
-        </span>
-      </div>
-      {moving === node.record.id && (
-        <form
-          className="pages-move"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void move(node.record, destination || null)
-          }}
+  const siblingsOf = (record: PageRecord) => records.filter((r) => r.parentId === record.parentId)
+  const openMore = (record: PageRecord, button: HTMLElement) => {
+    if (menuId === record.id) {
+      closeMenu()
+      return
+    }
+    moreAnchor.current = button
+    setMenuId(record.id)
+  }
+  const menuRecord = menuId ? records.find((r) => r.id === menuId) : undefined
+
+  const row = (node: TreeNode, depth: number) => {
+    const title = node.record.title || 'Untitled'
+    return (
+      <li key={node.record.id}>
+        <div
+          className={`pages-row${menuId === node.record.id ? ' is-menu-open' : ''}`}
+          style={{ paddingLeft: `${String(0.5 + depth * 0.9)}rem` }}
         >
-          <label>
-            Move to
-            <select
-              aria-label="Parent page"
+          {renaming === node.record.id ? (
+            <input
+              className="pages-rename"
+              aria-label="Page title"
               autoFocus
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={() => void finishRename(node.record.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void finishRename(node.record.id)
+                if (event.key === 'Escape') {
+                  renameActive.current = null
+                  setRenaming(null)
+                }
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className="pages-open"
+              aria-current={node.record.id === currentId ? 'page' : undefined}
+              onClick={(event) => {
+                onOpen(node.record.id)
+                event.currentTarget.blur()
+              }}
             >
-              <option value="">Top level</option>
-              {records
-                .filter((r) => !descendants(node.record.id).has(r.id))
-                .map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title || 'Untitled'}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <button type="submit">Move</button>
-          <button type="button" aria-label="Cancel move" onClick={() => setMoving(null)}>
-            <X size={15} />
-          </button>
-        </form>
-      )}
-      {node.children.length > 0 && <ul>{node.children.map((child) => row(child, depth + 1))}</ul>}
-    </li>
-  )
+              {title}
+            </button>
+          )}
+          <span className="pages-actions">
+            <button
+              type="button"
+              aria-label={`Add a page inside ${title}`}
+              onClick={() => void add(node.record.id)}
+            >
+              <FilePlus size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label={`More actions for ${title}`}
+              aria-haspopup="menu"
+              aria-expanded={menuId === node.record.id}
+              onClick={(event) => openMore(node.record, event.currentTarget)}
+            >
+              <Ellipsis size={15} aria-hidden="true" />
+            </button>
+          </span>
+        </div>
+        {node.children.length > 0 && <ul>{node.children.map((child) => row(child, depth + 1))}</ul>}
+      </li>
+    )
+  }
+
+  const movingRecord = moving ? records.find((r) => r.id === moving) : undefined
+  const moveTargets = useMemo(() => {
+    if (!movingRecord) return []
+    const blocked = descendants(movingRecord.id)
+    const walk = (nodes: readonly TreeNode[], depth: number): { id: string; title: string; depth: number }[] =>
+      nodes.flatMap((node) => {
+        if (blocked.has(node.record.id)) return []
+        return [
+          { id: node.record.id, title: node.record.title || 'Untitled', depth },
+          ...walk(node.children, depth + 1),
+        ]
+      })
+    return walk(tree, 0)
+  }, [movingRecord, tree, records])
+
+  const menuSiblings = menuRecord ? siblingsOf(menuRecord) : []
+  const menuTitle = menuRecord?.title || 'Untitled'
+  const canMoveUp = !!menuRecord && menuSiblings[0]?.id !== menuRecord.id
+  const canMoveDown = !!menuRecord && menuSiblings.at(-1)?.id !== menuRecord.id
 
   return (
     <nav className="pages-sidebar" aria-label="Pages">
+      {movingRecord && (
+        <AiDialog title="Move page" close={() => setMoving(null)}>
+          <p className="ai-muted">
+            Choose a new parent for <strong>{movingRecord.title || 'Untitled'}</strong>.
+          </p>
+          <div className="pages-move-destinations" role="listbox" aria-label="Move destination">
+            <button
+              type="button"
+              role="option"
+              aria-selected={destination === ''}
+              className={destination === '' ? 'is-selected' : undefined}
+              onClick={() => setDestination('')}
+            >
+              Top level
+            </button>
+            {moveTargets.map((target) => (
+              <button
+                key={target.id}
+                type="button"
+                role="option"
+                aria-selected={destination === target.id}
+                className={destination === target.id ? 'is-selected' : undefined}
+                style={{ paddingLeft: `${String(0.75 + target.depth * 0.9)}rem` }}
+                onClick={() => setDestination(target.id)}
+              >
+                {target.title}
+              </button>
+            ))}
+          </div>
+          <footer className="ai-dialog__actions">
+            <button type="button" onClick={() => setMoving(null)}>
+              Cancel
+            </button>
+            <button type="button" onClick={() => void move(movingRecord, destination || null)}>
+              Move here
+            </button>
+          </footer>
+        </AiDialog>
+      )}
+      <MenuFlyout
+        open={!!menuRecord}
+        getAnchor={() => moreAnchor.current?.getBoundingClientRect() ?? null}
+        label={`Actions for ${menuTitle}`}
+        onClose={closeMenu}
+        entries={
+          menuRecord
+            ? [
+                {
+                  id: 'rename',
+                  label: 'Rename',
+                  onSelect: () => {
+                    renameActive.current = menuRecord.id
+                    setDraft(menuRecord.title)
+                    setRenaming(menuRecord.id)
+                  },
+                },
+                {
+                  id: 'trash',
+                  label: 'Move to trash',
+                  danger: true,
+                  onSelect: () => {
+                    void trash(menuRecord)
+                  },
+                },
+                {
+                  id: 'move',
+                  label: 'Move…',
+                  onSelect: () => {
+                    setMoving(menuRecord.id)
+                    setDestination(menuRecord.parentId ?? '')
+                  },
+                },
+                ...(canMoveUp
+                  ? [
+                      {
+                        id: 'up',
+                        label: 'Move up',
+                        onSelect: () => {
+                          reorder(menuRecord, -1)
+                        },
+                      },
+                    ]
+                  : []),
+                ...(canMoveDown
+                  ? [
+                      {
+                        id: 'down',
+                        label: 'Move down',
+                        onSelect: () => {
+                          reorder(menuRecord, 1)
+                        },
+                      },
+                    ]
+                  : []),
+              ]
+            : []
+        }
+      />
       <input
         type="search"
         className="pages-search"
@@ -276,26 +376,6 @@ export function PagesSidebar({ currentId, onOpen, onCurrentTrashed, version, onC
           setQuery(event.target.value)
         }}
       />
-      {note && (
-        <div className="pages-note" role="status">
-          <span>{note.text}</span>
-          {note.undo && (
-            <button
-              type="button"
-              onClick={() => {
-                const undo = note.undo
-                setNote(null)
-                if (undo) void run(undo)
-              }}
-            >
-              Undo
-            </button>
-          )}
-          <button type="button" onClick={() => setNote(null)}>
-            Dismiss
-          </button>
-        </div>
-      )}
       {failed && (
         <div className="pages-note" role="alert">
           The page list could not be read.{' '}

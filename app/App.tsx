@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSONContent } from '@tiptap/core'
 import { composePlugins, PageEditor, usePageController } from '../src/editor/core'
 import initialDoc from './content/initial-doc.json'
@@ -18,11 +18,13 @@ import {
 import { PagesSidebar } from './PagesSidebar'
 import { StorageTools } from './StorageTools'
 import { collectPageReferenceIds } from './pageRefs'
-import { AiTools } from './AiTools'
+import { AiTools, type AiToolsHandle } from './AiTools'
 import { PageToolbar } from './PageToolbar'
+import { SelectionHostBridge } from './selectionHost'
 import { inStack, SaveStatus } from './SaveStatus'
 import { SidecarStatus } from './SidecarStatus'
 import { ExportNotice } from './ExportNotice'
+import { ToastHost } from './ToastHost'
 import { demoPagesEngine } from './pagesEngine'
 import { openPageById, setOpenPageHandler } from './navigation'
 import { ChildPagePreviews } from '../src/blocks/page-preview'
@@ -98,16 +100,25 @@ function Page({
   }, [openEditor, documentId])
   // Errors from every status component gather in one fixed stack, so two at once never cover each other.
   const [errorHost, setErrorHost] = useState<HTMLElement | null>(null)
+  const aiTools = useRef<AiToolsHandle>(null)
   return (
     <div className="app-frame">
       <div className="app-error-stack" ref={setErrorHost} />
       <PageBanner documentId={documentId} title={title} />
-      <PageToolbar page={page} />
-      {page.editor && (
-        <div className="app-ai-row">
-          <AiTools editor={page.editor} pageId={documentId} engine={demoPagesEngine} settings={demoSettings} />
-        </div>
-      )}
+      <PageToolbar
+        page={page}
+        end={
+          page.editor ? (
+            <AiTools
+              ref={aiTools}
+              editor={page.editor}
+              pageId={documentId}
+              engine={demoPagesEngine}
+              settings={demoSettings}
+            />
+          ) : null
+        }
+      />
       {page.editor && <SaveStatus editor={page.editor} errorHost={errorHost} settingsFailed={page.lockSaveFailed} />}
       <SidecarStatus errorHost={errorHost} />
       {page.lockSaveFailed &&
@@ -122,6 +133,7 @@ function Page({
         )}
       <ExportNotice host={errorHost} />
       <PageEditor page={page} />
+      <SelectionHostBridge onAiActions={() => void aiTools.current?.openActions()} />
       <ChildPagePreviews
         registry={demoRegistry}
         pages={demoPages}
@@ -329,6 +341,7 @@ export function App() {
           previewVersion={version}
         />
       </main>
+      <ToastHost />
     </div>
   )
 }

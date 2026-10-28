@@ -25,13 +25,25 @@ const settle = async () => {
   })
 }
 const button = (label: string) => {
-  const found = [...host.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === label)
+  const found = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === label)
   if (!found) throw new Error(`No button ${label}`)
   return found
+}
+const menuItem = (label: string) => {
+  const found = [...document.querySelectorAll('[role="menuitem"]')].find((b) => b.textContent === label)
+  if (!found) throw new Error(`No menu item ${label}`)
+  return found as HTMLButtonElement
 }
 const click = async (label: string) => {
   await act(async () => {
     button(label).click()
+  })
+  await settle()
+}
+const choose = async (pageTitle: string, item: string) => {
+  await click(`More actions for ${pageTitle}`)
+  await act(async () => {
+    menuItem(item).click()
   })
   await settle()
 }
@@ -69,7 +81,7 @@ describe('page sidebar', () => {
     await data.registry?.create({ id: 'c', parentId: 'p', title: 'Child' })
     const leave = vi.fn()
     await render('c', leave)
-    await click('Move Parent to trash')
+    await choose('Parent', 'Move to trash')
     expect(leave).toHaveBeenCalledWith(null)
   })
   it('does not navigate away when a different subtree is trashed', async () => {
@@ -77,13 +89,13 @@ describe('page sidebar', () => {
     await data.registry?.create({ id: 'c', title: 'Other' })
     const leave = vi.fn()
     await render('c', leave)
-    await click('Move Parent to trash')
+    await choose('Parent', 'Move to trash')
     expect(leave).not.toHaveBeenCalled()
   })
   it('Escape cancels rename and a following blur cannot save it', async () => {
     await data.registry?.create({ id: 'p', title: 'Original' })
     await render('p')
-    await click('Rename Original')
+    await choose('Original', 'Rename')
     const input = host.querySelector<HTMLInputElement>('.pages-rename')
     if (!input) throw new Error('No input')
     await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
@@ -96,10 +108,17 @@ describe('page sidebar', () => {
     await data.registry?.create({ id: 'c', title: 'Child', parentId: 'p' })
     await data.registry?.create({ id: 'other', title: 'Other' })
     await render('p')
-    expect(button('Move Parent up').disabled).toBe(true)
-    expect(button('Move Parent down').disabled).toBe(false)
-    await click('Move Parent')
-    const options = [...host.querySelectorAll('option')].map((o) => o.value)
-    expect(options).toEqual(['', 'other'])
+    await click('More actions for Parent')
+    const labels = [...document.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent)
+    expect(labels).not.toContain('Move up')
+    expect(labels).toContain('Move down')
+    await act(async () => {
+      menuItem('Move…').click()
+    })
+    await settle()
+    const dialog = document.querySelector('[role="dialog"]')
+    expect(dialog).toBeTruthy()
+    const destinations = [...document.querySelectorAll('[role="option"]')].map((o) => o.textContent)
+    expect(destinations).toEqual(['Top level', 'Other'])
   })
 })

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { dismissExportNotice, getExportNotice, subscribeExportNotice } from './exportNotice'
+import { dismissExportNotice, getExportNotice, subscribeExportNotice } from './exportOmitted'
 import { inStack } from './SaveStatus'
 
 /** After an export that left files out: says how many and why. The exported file carries its own note too. */

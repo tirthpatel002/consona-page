@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { demoBlobs, demoPages, demoRegistry } from './demoSession'
-import { countInlineFiles, migratePageFiles, scanOrphans, sweepOrphans } from './storageTools'
+import { countInlineFiles, migratePageFiles, scanOrphans, sweepOrphans } from './storageOps'
 import { askOtherTabs, refuseIfOtherTabsDirty } from './tabCoordination'
 import './storageTools.css'
 

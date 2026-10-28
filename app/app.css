@@ -18,7 +18,6 @@ body {
 }
 
 .save-status {
-  min-height: 1.5rem;
   padding: 0 1rem;
   font-size: 0.8rem;
   color: var(--page-muted-fg);
@@ -111,17 +110,21 @@ body {
 
 .app-shell {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
+  min-height: 100vh;
 }
 .pages-pane {
   width: 16rem;
   flex: none;
   position: sticky;
   top: 0;
+  align-self: flex-start;
+  height: 100vh;
   max-height: 100vh;
   overflow-y: auto;
   border-right: 1px solid var(--page-border, currentColor);
   background: var(--page-bg);
+  box-sizing: border-box;
 }
 .app-main {
   flex: 1;
@@ -155,6 +158,7 @@ body {
   color: inherit;
 }
 .pages-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -168,6 +172,7 @@ body {
   background: none;
   border: 0;
   padding: 0.3rem 0.25rem;
+  padding-right: 3.25rem;
   color: inherit;
   cursor: pointer;
   overflow: hidden;
@@ -181,11 +186,23 @@ body {
   border-radius: var(--page-r-2);
 }
 .pages-actions {
+  position: absolute;
+  right: 0.15rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
   display: none;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.05rem;
+  flex-wrap: nowrap;
+  padding: 0.1rem;
+  background: var(--page-bg);
+  border: 1px solid var(--page-border, currentColor);
+  border-radius: var(--page-r-1);
+  box-shadow: 0 2px 10px oklch(0.25 0.01 260 / 0.12);
 }
 .pages-row:hover .pages-actions,
-.pages-row:focus-within .pages-actions {
+.pages-row.is-menu-open .pages-actions {
   display: inline-flex;
 }
 .pages-sidebar button {
@@ -195,10 +212,13 @@ body {
   border: 0;
   cursor: pointer;
 }
-.pages-actions button,
 .pages-note button,
 .pages-new button {
   text-decoration: underline;
+  padding: 0.1rem 0.25rem;
+}
+.pages-actions button {
+  text-decoration: none;
   padding: 0.1rem 0.25rem;
 }
 .pages-note {
@@ -240,16 +260,6 @@ body {
   }
   .pages-actions {
     display: inline-flex;
-  }
-}
-
-/* Lines the AI and settings buttons up with the toolbar above them. */
-.app-ai-row {
-  padding: 0 16px;
-}
-@media (max-width: 700px) {
-  .app-ai-row {
-    padding: 0 8px;
   }
 }
 
